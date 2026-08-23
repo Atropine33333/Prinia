@@ -95,3 +95,20 @@ class Courses extends Table with SyncColumns {
       .named('reminders_json')
       .withDefault(const Constant('[]'))();
 }
+
+/// 自定义分类标签（记账用）。
+@DataClassName('CustomCategoryRow')
+@TableIndex(name: 'idx_custom_cat_type', columns: {#type})
+class CustomCategories extends Table with SyncColumns {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text().withLength(min: 1, max: 16)();
+
+  /// MaterialIcons 码点（来自内置精选目录）。
+  IntColumn get iconCode => integer()
+      .named('icon_code')
+      .clientDefault(() => 0xe57f)(); // Icons.label_outline
+
+  /// 'expense' 或 'income'
+  TextColumn get type => text().withLength(min: 1, max: 8)();
+}

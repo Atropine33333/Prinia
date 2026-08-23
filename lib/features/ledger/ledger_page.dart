@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/db/daos/accounts_dao.dart';
+import '../../core/icons/app_icon_view.dart';
 import '../../core/theme/app_colors.dart';
+import 'ledger_categories_provider.dart';
 import 'ledger_edit_page.dart';
 import 'ledger_providers.dart';
 import 'widgets/category_icons.dart';
@@ -166,9 +168,16 @@ class _AccountTile extends ConsumerWidget {
     final isIncome = row.type == 'income';
     final amountColor = isIncome ? colors.primary : colors.text;
     final sign = isIncome ? '+' : '-';
+    // 自定义标签优先按码点渲染
+    final customs = ref.watch(customCategoriesProvider(row.type)).value;
+    final custom = customs?.where((c) => c.name == row.category).firstOrNull;
+    final leading = custom != null
+        ? AppIconView(
+            codePoint: custom.iconCode, color: colors.primary, size: 22)
+        : categoryIcon(row.category, colors);
 
     return ListTile(
-      leading: categoryIcon(row.category, colors),
+      leading: leading,
       title: Text(
         row.note?.isNotEmpty == true ? row.note! : row.category,
         maxLines: 1,

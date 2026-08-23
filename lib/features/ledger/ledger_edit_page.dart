@@ -5,7 +5,11 @@ import 'package:intl/intl.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
+import '../../core/icons/app_icon_catalog.dart';
+import '../../core/icons/app_icon_view.dart';
 import '../../core/theme/app_colors.dart';
+import 'create_category_sheet.dart';
+import 'ledger_categories_provider.dart';
 import 'ledger_providers.dart';
 import 'widgets/category_icons.dart';
 
@@ -33,20 +37,50 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
     final e = widget.existing;
     _type = e?.type ?? 'expense';
     _category = e?.category ?? ledgerCategories.first;
-    _amountCtrl =
-        TextEditingController(text: e == null ? '' : _fmt(e.amount));
+    _amountCtrl = TextEditingController(text: e == null ? '' : _fmt(e.amount));
     _noteCtrl = TextEditingController(text: e?.note);
     _occurredAt = e == null
         ? DateTime.now()
         : DateTime.fromMillisecondsSinceEpoch(e.occurredAt);
   }
 
-  static String _fmt(double v) =>
-      v.toStringAsFixed(v % 1 == 0 ? 0 : 2);
+  static String _fmt(double v) => v.toStringAsFixed(v % 1 == 0 ? 0 : 2);
+
+  /// 当前类型下的可选标签：默认 + 自定义。
+  List<_CategoryOption> _options(List<CustomCategoryRow> customs) {
+    final defaults = _type == 'income'
+        ? [
+            for (final name in incomeDefaultCategories)
+              _CategoryOption(
+                name: name,
+                codePoint: incomeDefaultIcons[name]!.codePoint,
+              ),
+          ]
+        : [
+            for (final name in ledgerCategories)
+              _CategoryOption(
+                name: name,
+                codePoint: expenseCategoryMeta[name]!.codePoint,
+              ),
+          ];
+    return [
+      ...defaults,
+      for (final c in customs)
+        _CategoryOption(name: c.name, codePoint: c.iconCode, isCustom: true),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final customs = ref
+        .watch(customCategoriesProvider(_type))
+        .value;
+    final options = _options(customs ?? const []);
+    // 确保当前选中项在选项里（切类型时自动纠正）
+    if (!options.any((o) => o.name == _category)) {
+      _category = options.first.name;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -62,17 +96,18 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // 收/支切换
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'expense', label: Text('支出'), icon: Icon(Icons.north_east)),
-              ButtonSegment(value: 'income', label: Text('收入'), icon: Icon(Icons.south_west)),
+              ButtonSegment(
+                  value: 'expense', label: Text('支出'), icon: Icon(Icons.north_east)),
+              ButtonSegment(
+                  value: 'income', label: Text('收入'), icon: Icon(Icons.south_west)),
             ],
             selected: {_type},
             onSelectionChanged: (s) => setState(() => _type = s.first),
           ),
           const SizedBox(height: 24),
-          // 金额
+          // 金额（无下划线）
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -103,27 +138,27 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
               ),
             ],
           ),
-          Divider(color: colors.border),
           const SizedBox(height: 16),
-          // 类别
+          // 标签（默认 + 自定义 + 新建）
           Align(
             alignment: Alignment.centerLeft,
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final c in ledgerCategories)
+                for (final o in options)
                   _CategoryChip(
-                    label: c,
-                    selected: _category == c && _type == 'expense' ||
-                        _category == c && _type == 'income',
-                    onTap: () => setState(() => _category = c),
+                    option: o,
+                    selected: _category == o.name,
+                    onTap: () => setState(() => _category = o.name),
                   ),
+                _AddCategoryChip(
+                  onTap: () => showCreateCategorySheet(context, ref, _type),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          // 备注
           TextField(
             controller: _noteCtrl,
             maxLength: 50,
@@ -134,7 +169,6 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
             ),
           ),
           const SizedBox(height: 8),
-          // 时间
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.schedule, color: colors.textMuted),
@@ -146,13 +180,13 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
             onTap: _pickDateTime,
           ),
           const SizedBox(height: 12),
-          // 保存
           FilledButton(
             onPressed: _save,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: Text(_isEdit ? '保存修改' : '保存', style: const TextStyle(fontSize: 16)),
+            child: Text(_isEdit ? '保存修改' : '保存',
+                style: const TextStyle(fontSize: 16)),
           ),
         ],
       ),
@@ -186,6 +220,7 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
   Future<void> _save() async {
     final amount = double.tryParse(_amountCtrl.text.trim());
     if (amount == null || amount <= 0) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请输入正确的金额')),
       );
@@ -195,7 +230,7 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
     final companion = AccountsCompanion.insert(
       amount: amount,
       type: _type,
-      category: _type == 'income' ? '其他' : _category,
+      category: _category,
       occurredAt: Value(_occurredAt.millisecondsSinceEpoch),
       note: Value(_noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim()),
     );
@@ -217,8 +252,7 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('取消',
-                style: TextStyle(color: colors.textMuted)),
+            child: Text('取消', style: TextStyle(color: colors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -243,13 +277,24 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
   }
 }
 
+class _CategoryOption {
+  final String name;
+  final int codePoint;
+  final bool isCustom;
+  const _CategoryOption({
+    required this.name,
+    required this.codePoint,
+    this.isCustom = false,
+  });
+}
+
 class _CategoryChip extends StatelessWidget {
-  final String label;
+  final _CategoryOption option;
   final bool selected;
   final VoidCallback onTap;
 
   const _CategoryChip({
-    required this.label,
+    required this.option,
     required this.selected,
     required this.onTap,
   });
@@ -262,13 +307,16 @@ class _CategoryChip extends StatelessWidget {
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          categoryIcon(label, colors, size: 16),
+          AppIconView(
+            codePoint: option.codePoint,
+            color: selected ? colors.primary : colors.textMuted,
+            size: 16,
+          ),
           const SizedBox(width: 6),
-          Text(label),
+          Text(option.name),
         ],
       ),
       selectedColor: colors.activeBg,
-      checkmarkColor: colors.primary,
       side: BorderSide(color: selected ? colors.primary : colors.border),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       labelStyle: TextStyle(
@@ -277,6 +325,28 @@ class _CategoryChip extends StatelessWidget {
       ),
       showCheckmark: false,
       onSelected: (_) => onTap(),
+    );
+  }
+}
+
+/// 「+ 新建标签」入口。
+class _AddCategoryChip extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddCategoryChip({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return ActionChip(
+      onPressed: onTap,
+      avatar: Icon(Icons.add, size: 16, color: colors.primary),
+      label: Text('新建',
+          style: TextStyle(color: colors.primary)),
+      side: BorderSide(
+          color: colors.primary.withValues(alpha: 0.4),
+          strokeAlign: BorderSide.strokeAlignInside),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: colors.bg,
     );
   }
 }
