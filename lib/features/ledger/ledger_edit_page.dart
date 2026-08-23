@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
-import '../../core/icons/app_icon_catalog.dart';
 import '../../core/icons/app_icon_view.dart';
 import '../../core/theme/app_colors.dart';
 import 'create_category_sheet.dart';
