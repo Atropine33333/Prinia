@@ -1,0 +1,46 @@
+name: octo_note
+description: "OctoNote - 记账、番茄钟、课表一体化本地效率工具"
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # 状态管理
+  flutter_riverpod: ^2.6.1
+
+  # 本地数据库
+  drift: ^2.28.2
+  sqlite3_flutter_libs: ^0.5.32
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+  # 持久化配置（自定义配色板）
+  shared_preferences: ^2.5.3
+
+  # 本地通知
+  flutter_local_notifications: ^19.4.2
+  timezone: ^0.10.1
+
+  # 国际化/格式化
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # Drift 代码生成
+  drift_dev: ^2.28.1
+  build_runner: ^2.7.1
+
+flutter:
+  uses-material-design: true
