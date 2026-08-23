@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons/app_icon_view.dart';
 import '../../../core/theme/app_colors.dart';
 
-/// 类别 → 图标映射（全部矢量，颜色随主题）。
-const categoryMeta = <String, IconData>{
+/// 支出默认类别 → Material 图标。
+const expenseCategoryMeta = <String, IconData>{
   '餐饮': Icons.restaurant,
   '购物': Icons.shopping_bag_outlined,
   '学习': Icons.school_outlined,
@@ -13,10 +14,20 @@ const categoryMeta = <String, IconData>{
   '其他': Icons.more_horiz,
 };
 
-Icon categoryIcon(String category, AppColors colors, {double size = 22}) {
-  final icon = categoryMeta[category] ?? Icons.more_horiz;
-  return Icon(icon, size: size, color: colors.primary);
+/// 类别图标渲染：内置表 → 猫猫头兜底。
+///
+/// 自定义标签请使用 [categoryIconByCode]（存了码点）。
+Widget categoryIcon(String category, AppColors colors, {double size = 22}) {
+  final icon = expenseCategoryMeta[category];
+  if (icon != null) return Icon(icon, size: size, color: colors.primary);
+  // 未知名称（含自定义）→ 猫猫头
+  return CatIconView(size: size, color: colors.primary);
 }
+
+/// 按码点渲染（自定义标签）。
+Widget categoryIconByCode(int codePoint, AppColors colors,
+        {double size = 22}) =>
+    AppIconView(codePoint: codePoint, color: colors.primary, size: size);
 
 /// 类别在饼图中的固定色序（低饱和，取自主题派生）。
 List<Color> piePalette(AppColors c) => [

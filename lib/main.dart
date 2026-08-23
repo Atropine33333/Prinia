@@ -16,7 +16,7 @@ class OctoNoteApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = ref.watch(activeColorsProvider);
     return MaterialApp(
-      title: 'OctoNote',
+      title: 'Prinia',
       debugShowCheckedModeBanner: false,
       theme: buildThemeData(colors),
       home: const AppShell(),

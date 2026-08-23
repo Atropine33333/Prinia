@@ -60,9 +60,24 @@ ThemeData buildThemeData(AppColors c) {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: c.surface,
-      indicatorColor: c.activeBg,
-      labelTextStyle: WidgetStatePropertyAll(
-        TextStyle(color: c.textMuted, fontSize: 12),
+      indicatorColor: c.primary.withValues(alpha: 0.16),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          color: states.contains(WidgetState.selected)
+              ? c.primary
+              : c.textMuted,
+        ),
+      ),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          fontSize: 12,
+          fontWeight: states.contains(WidgetState.selected)
+              ? FontWeight.w600
+              : FontWeight.normal,
+          color: states.contains(WidgetState.selected)
+              ? c.primary
+              : c.textMuted,
+        ),
       ),
     ),
     navigationRailTheme: NavigationRailThemeData(

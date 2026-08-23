@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../features/ledger/ledger_page.dart';
+import '../features/pomodoro/pomodoro_page.dart';
 import 'placeholder_page.dart';
 
 /// 应用主外壳：手机底部导航 / 平板侧边导航。
@@ -41,7 +42,7 @@ class _AppShellState extends State<AppShell> {
     final colors = Theme.of(context).extension<AppColors>()!;
     final pages = [
       const LedgerPage(),
-      const PlaceholderPage(label: '番茄钟'),
+      const PomodoroPage(),
       const PlaceholderPage(label: '课表'),
     ];
 

@@ -1904,12 +1904,466 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
   }
 }
 
+class $CustomCategoriesTable extends CustomCategories
+    with TableInfo<$CustomCategoriesTable, CustomCategoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CustomCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    clientDefault: dbNowMs,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local'),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 16,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconCodeMeta = const VerificationMeta(
+    'iconCode',
+  );
+  @override
+  late final GeneratedColumn<int> iconCode = GeneratedColumn<int>(
+    'icon_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    clientDefault: () => 0xe57f,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 8,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    updatedAt,
+    deviceId,
+    isDeleted,
+    id,
+    name,
+    iconCode,
+    type,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'custom_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CustomCategoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('icon_code')) {
+      context.handle(
+        _iconCodeMeta,
+        iconCode.isAcceptableOrUnknown(data['icon_code']!, _iconCodeMeta),
+      );
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CustomCategoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CustomCategoryRow(
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      iconCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}icon_code'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+    );
+  }
+
+  @override
+  $CustomCategoriesTable createAlias(String alias) {
+    return $CustomCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class CustomCategoryRow extends DataClass
+    implements Insertable<CustomCategoryRow> {
+  final int updatedAt;
+  final String deviceId;
+  final bool isDeleted;
+  final int id;
+  final String name;
+
+  /// MaterialIcons 码点（来自内置精选目录）。
+  final int iconCode;
+
+  /// 'expense' 或 'income'
+  final String type;
+  const CustomCategoryRow({
+    required this.updatedAt,
+    required this.deviceId,
+    required this.isDeleted,
+    required this.id,
+    required this.name,
+    required this.iconCode,
+    required this.type,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['device_id'] = Variable<String>(deviceId);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['icon_code'] = Variable<int>(iconCode);
+    map['type'] = Variable<String>(type);
+    return map;
+  }
+
+  CustomCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return CustomCategoriesCompanion(
+      updatedAt: Value(updatedAt),
+      deviceId: Value(deviceId),
+      isDeleted: Value(isDeleted),
+      id: Value(id),
+      name: Value(name),
+      iconCode: Value(iconCode),
+      type: Value(type),
+    );
+  }
+
+  factory CustomCategoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CustomCategoryRow(
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      iconCode: serializer.fromJson<int>(json['iconCode']),
+      type: serializer.fromJson<String>(json['type']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'iconCode': serializer.toJson<int>(iconCode),
+      'type': serializer.toJson<String>(type),
+    };
+  }
+
+  CustomCategoryRow copyWith({
+    int? updatedAt,
+    String? deviceId,
+    bool? isDeleted,
+    int? id,
+    String? name,
+    int? iconCode,
+    String? type,
+  }) => CustomCategoryRow(
+    updatedAt: updatedAt ?? this.updatedAt,
+    deviceId: deviceId ?? this.deviceId,
+    isDeleted: isDeleted ?? this.isDeleted,
+    id: id ?? this.id,
+    name: name ?? this.name,
+    iconCode: iconCode ?? this.iconCode,
+    type: type ?? this.type,
+  );
+  CustomCategoryRow copyWithCompanion(CustomCategoriesCompanion data) {
+    return CustomCategoryRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      iconCode: data.iconCode.present ? data.iconCode.value : this.iconCode,
+      type: data.type.present ? data.type.value : this.type,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomCategoryRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('iconCode: $iconCode, ')
+          ..write('type: $type')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(updatedAt, deviceId, isDeleted, id, name, iconCode, type);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomCategoryRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deviceId == this.deviceId &&
+          other.isDeleted == this.isDeleted &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.iconCode == this.iconCode &&
+          other.type == this.type);
+}
+
+class CustomCategoriesCompanion extends UpdateCompanion<CustomCategoryRow> {
+  final Value<int> updatedAt;
+  final Value<String> deviceId;
+  final Value<bool> isDeleted;
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int> iconCode;
+  final Value<String> type;
+  const CustomCategoriesCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.iconCode = const Value.absent(),
+    this.type = const Value.absent(),
+  });
+  CustomCategoriesCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.id = const Value.absent(),
+    required String name,
+    this.iconCode = const Value.absent(),
+    required String type,
+  }) : name = Value(name),
+       type = Value(type);
+  static Insertable<CustomCategoryRow> custom({
+    Expression<int>? updatedAt,
+    Expression<String>? deviceId,
+    Expression<bool>? isDeleted,
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? iconCode,
+    Expression<String>? type,
+  }) {
+    return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (iconCode != null) 'icon_code': iconCode,
+      if (type != null) 'type': type,
+    });
+  }
+
+  CustomCategoriesCompanion copyWith({
+    Value<int>? updatedAt,
+    Value<String>? deviceId,
+    Value<bool>? isDeleted,
+    Value<int>? id,
+    Value<String>? name,
+    Value<int>? iconCode,
+    Value<String>? type,
+  }) {
+    return CustomCategoriesCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deviceId: deviceId ?? this.deviceId,
+      isDeleted: isDeleted ?? this.isDeleted,
+      id: id ?? this.id,
+      name: name ?? this.name,
+      iconCode: iconCode ?? this.iconCode,
+      type: type ?? this.type,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (iconCode.present) {
+      map['icon_code'] = Variable<int>(iconCode.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomCategoriesCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('iconCode: $iconCode, ')
+          ..write('type: $type')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $FocusSessionsTable focusSessions = $FocusSessionsTable(this);
   late final $CoursesTable courses = $CoursesTable(this);
+  late final $CustomCategoriesTable customCategories = $CustomCategoriesTable(
+    this,
+  );
   late final Index idxAccountsOccurred = Index(
     'idx_accounts_occurred',
     'CREATE INDEX idx_accounts_occurred ON accounts (occurred_at)',
@@ -1922,11 +2376,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_courses_weekday',
     'CREATE INDEX idx_courses_weekday ON courses (weekday)',
   );
+  late final Index idxCustomCatType = Index(
+    'idx_custom_cat_type',
+    'CREATE INDEX idx_custom_cat_type ON custom_categories (type)',
+  );
   late final AccountsDao accountsDao = AccountsDao(this as AppDatabase);
   late final FocusSessionsDao focusSessionsDao = FocusSessionsDao(
     this as AppDatabase,
   );
   late final CoursesDao coursesDao = CoursesDao(this as AppDatabase);
+  late final CustomCategoriesDao customCategoriesDao = CustomCategoriesDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1935,9 +2396,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     accounts,
     focusSessions,
     courses,
+    customCategories,
     idxAccountsOccurred,
     idxFocusStart,
     idxCoursesWeekday,
+    idxCustomCatType,
   ];
 }
 
@@ -2839,6 +3302,248 @@ typedef $$CoursesTableProcessedTableManager =
       CourseRow,
       PrefetchHooks Function()
     >;
+typedef $$CustomCategoriesTableCreateCompanionBuilder =
+    CustomCategoriesCompanion Function({
+      Value<int> updatedAt,
+      Value<String> deviceId,
+      Value<bool> isDeleted,
+      Value<int> id,
+      required String name,
+      Value<int> iconCode,
+      required String type,
+    });
+typedef $$CustomCategoriesTableUpdateCompanionBuilder =
+    CustomCategoriesCompanion Function({
+      Value<int> updatedAt,
+      Value<String> deviceId,
+      Value<bool> isDeleted,
+      Value<int> id,
+      Value<String> name,
+      Value<int> iconCode,
+      Value<String> type,
+    });
+
+class $$CustomCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $CustomCategoriesTable> {
+  $$CustomCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get iconCode => $composableBuilder(
+    column: $table.iconCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CustomCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CustomCategoriesTable> {
+  $$CustomCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get iconCode => $composableBuilder(
+    column: $table.iconCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CustomCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CustomCategoriesTable> {
+  $$CustomCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get iconCode =>
+      $composableBuilder(column: $table.iconCode, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+}
+
+class $$CustomCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CustomCategoriesTable,
+          CustomCategoryRow,
+          $$CustomCategoriesTableFilterComposer,
+          $$CustomCategoriesTableOrderingComposer,
+          $$CustomCategoriesTableAnnotationComposer,
+          $$CustomCategoriesTableCreateCompanionBuilder,
+          $$CustomCategoriesTableUpdateCompanionBuilder,
+          (
+            CustomCategoryRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CustomCategoriesTable,
+              CustomCategoryRow
+            >,
+          ),
+          CustomCategoryRow,
+          PrefetchHooks Function()
+        > {
+  $$CustomCategoriesTableTableManager(
+    _$AppDatabase db,
+    $CustomCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CustomCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CustomCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CustomCategoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> updatedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> iconCode = const Value.absent(),
+                Value<String> type = const Value.absent(),
+              }) => CustomCategoriesCompanion(
+                updatedAt: updatedAt,
+                deviceId: deviceId,
+                isDeleted: isDeleted,
+                id: id,
+                name: name,
+                iconCode: iconCode,
+                type: type,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> updatedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<int> iconCode = const Value.absent(),
+                required String type,
+              }) => CustomCategoriesCompanion.insert(
+                updatedAt: updatedAt,
+                deviceId: deviceId,
+                isDeleted: isDeleted,
+                id: id,
+                name: name,
+                iconCode: iconCode,
+                type: type,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CustomCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CustomCategoriesTable,
+      CustomCategoryRow,
+      $$CustomCategoriesTableFilterComposer,
+      $$CustomCategoriesTableOrderingComposer,
+      $$CustomCategoriesTableAnnotationComposer,
+      $$CustomCategoriesTableCreateCompanionBuilder,
+      $$CustomCategoriesTableUpdateCompanionBuilder,
+      (
+        CustomCategoryRow,
+        BaseReferences<
+          _$AppDatabase,
+          $CustomCategoriesTable,
+          CustomCategoryRow
+        >,
+      ),
+      CustomCategoryRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2849,4 +3554,6 @@ class $AppDatabaseManager {
       $$FocusSessionsTableTableManager(_db, _db.focusSessions);
   $$CoursesTableTableManager get courses =>
       $$CoursesTableTableManager(_db, _db.courses);
+  $$CustomCategoriesTableTableManager get customCategories =>
+      $$CustomCategoriesTableTableManager(_db, _db.customCategories);
 }
