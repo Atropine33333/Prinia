@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../features/ledger/ledger_page.dart';
+import 'placeholder_page.dart';
 
 /// 应用主外壳：手机底部导航 / 平板侧边导航。
 ///
@@ -38,9 +40,9 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final pages = [
-      _PlaceholderPage(label: '记账本'),
-      _PlaceholderPage(label: '番茄钟'),
-      _PlaceholderPage(label: '课表'),
+      const LedgerPage(),
+      const PlaceholderPage(label: '番茄钟'),
+      const PlaceholderPage(label: '课表'),
     ];
 
     return LayoutBuilder(
@@ -133,26 +135,4 @@ class _Destination {
     required this.selectedIcon,
     required this.label,
   });
-}
-
-/// 各模块就绪前的占位页。
-class _PlaceholderPage extends StatelessWidget {
-  final String label;
-  const _PlaceholderPage({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.construction, size: 48, color: colors.textMuted),
-          const SizedBox(height: 12),
-          Text('$label · 建设中',
-              style: TextStyle(color: colors.textMuted)),
-        ],
-      ),
-    );
-  }
 }
