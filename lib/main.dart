@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,10 +16,24 @@ final shellKey = GlobalKey<AppShellState>();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  unawaited(_enableHighRefreshRate());
   // 本地通知初始化（饭点提醒 / 课程提醒）
   unawaited(NotificationService.init());
   NotificationService.registerTapHandler(_handleNotificationTap);
   runApp(const ProviderScope(child: PriniaApp()));
+}
+
+/// 请求设备最高刷新率（如 120fps）；不支持则系统自动回退 60fps。
+Future<void> _enableHighRefreshRate() async {
+  try {
+    if (!Platform.isAndroid) return;
+    final modes = await FlutterDisplayMode.supported;
+    final best = modes.reduce(
+        (a, b) => a.refreshRate > b.refreshRate ? a : b);
+    await FlutterDisplayMode.setPreferredMode(best);
+  } catch (_) {
+    // 平台不支持时静默忽略
+  }
 }
 
 void _handleNotificationTap(String payload) {

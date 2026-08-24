@@ -166,7 +166,7 @@ class _ThemeEditorPageState extends ConsumerState<ThemeEditorPage> {
   }
 }
 
-/// 简易取色器：色相环 + 饱和度/明度滑块 + hex 输入。
+/// react-colorful 风格取色器：SV 面板 + 色相条 + hex 输入。
 class _SimpleColorPicker extends StatefulWidget {
   final Color initial;
   const _SimpleColorPicker({required this.initial});
@@ -177,12 +177,19 @@ class _SimpleColorPicker extends StatefulWidget {
 
 class _SimpleColorPickerState extends State<_SimpleColorPicker> {
   late HSVColor _hsv;
+  final _hexCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     final h = HSLColor.fromColor(widget.initial);
     _hsv = HSVColor.fromAHSV(1, h.hue, h.saturation, h.lightness);
+    _syncHex();
+  }
+
+  void _syncHex() {
+    _hexCtrl.text =
+        '#${_hsv.toColor().toARGB32().toRadixString(16).substring(2).toUpperCase()}';
   }
 
   @override
@@ -192,67 +199,126 @@ class _SimpleColorPickerState extends State<_SimpleColorPicker> {
 
     return AlertDialog(
       title: const Text('选择颜色'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 色相条
-          GestureDetector(
-            onPanDown: (d) => _pickHue(d.localPosition.dx, context),
-            onPanUpdate: (d) => _pickHue(d.localPosition.dx, context),
-            child: Container(
-              height: 36,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFFF0000), Color(0xFFFFFF00),
-                    Color(0xFF00FF00), Color(0xFF00FFFF),
-                    Color(0xFF0000FF), Color(0xFFFF00FF),
-                    Color(0xFFFF0000),
-                  ],
+      content: SizedBox(
+        width: 280,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // SV 面板：x=饱和度，y=明度
+            GestureDetector(
+              onPanDown: (d) => _pickSV(d.localPosition),
+              onPanUpdate: (d) => _pickSV(d.localPosition),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 150,
+                  child: CustomPaint(
+                    painter: _SvPanelPainter(hue: _hsv.hue),
+                    child: LayoutBuilder(builder: (ctx, box) {
+                      return Stack(
+                        children: [
+                          Positioned(
+                            left: _hsv.saturation * box.maxWidth - 10,
+                            top: (1 - _hsv.value) * box.maxHeight - 10,
+                            child: GestureDetector(
+                              onTap: () {},
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Colors.white, width: 2.5),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 4),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text('饱和度',
-                  style: TextStyle(fontSize: 12, color: colors.textMuted)),
-              Expanded(
-                child: Slider(
-                  value: _hsv.saturation,
-                  activeColor: colors.primary,
-                  onChanged: (v) =>
-                      setState(() => _hsv = _hsv.withSaturation(v)),
+            const SizedBox(height: 14),
+            // 色相条
+            GestureDetector(
+              onPanDown: (d) => _pickHue(d.localPosition.dx, ctx: context),
+              onPanUpdate: (d) => _pickHue(d.localPosition.dx, ctx: context),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: SizedBox(
+                  height: 22,
+                  width: double.infinity,
+                  child: LayoutBuilder(builder: (ctx, box) {
+                    return Stack(
+                      children: [
+                        const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [
+                              Color(0xFFFF0000), Color(0xFFFFFF00),
+                              Color(0xFF00FF00), Color(0xFF00FFFF),
+                              Color(0xFF0000FF), Color(0xFFFF00FF),
+                              Color(0xFFFF0000),
+                            ]),
+                          ),
+                          child: SizedBox.expand(),
+                        ),
+                        Positioned(
+                          left: (_hsv.hue / 360) * box.maxWidth - 8,
+                          top: 1,
+                          child: Container(
+                            width: 16,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: current,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                  color: Colors.white, width: 2),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Colors.black26, blurRadius: 3),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
                 ),
               ),
-            ],
-          ),
-          Row(
-            children: [
-              Text('明度',
-                  style: TextStyle(fontSize: 12, color: colors.textMuted)),
-              Expanded(
-                child: Slider(
-                  value: _hsv.value,
-                  activeColor: colors.primary,
-                  onChanged: (v) => setState(() => _hsv = _hsv.withValue(v)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: 44,
-            width: 44,
-            decoration: BoxDecoration(
-              color: current,
-              shape: BoxShape.circle,
-              border: Border.all(color: colors.border),
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            // hex 输入 + 预览
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: current,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colors.border),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _hexCtrl,
+                    decoration: const InputDecoration(hintText: '#RRGGBB'),
+                    onSubmitted: _applyHex,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -267,9 +333,74 @@ class _SimpleColorPickerState extends State<_SimpleColorPicker> {
     );
   }
 
-  void _pickHue(double dx, BuildContext context) {
-    final width = context.size?.width ?? 1;
-    final ratio = (dx / width).clamp(0.0, 0.9999);
-    setState(() => _hsv = _hsv.withHue(ratio * 360));
+  void _pickSV(Offset local) {
+    // 面板实际宽度从渲染对象取
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final w = box.size.width - 48; // 减去 dialog padding 估算
+    final sRatio = (local.dx / (w <= 0 ? 1 : w)).clamp(0.0, 1.0);
+    final vRatio = (local.dy / 150).clamp(0.0, 1.0);
+    setState(() {
+      _hsv = _hsv.withSaturation(sRatio).withValue(1 - vRatio);
+    });
+    _syncHex();
   }
+
+  void _pickHue(double dx, {required BuildContext ctx}) {
+    final box = ctx.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final ratio = (dx / box.size.width).clamp(0.0, 0.9999);
+    setState(() => _hsv = _hsv.withHue(ratio * 360));
+    _syncHex();
+  }
+
+  void _applyHex(String v) {
+    var hex = v.trim().replaceFirst('#', '');
+    if (hex.length == 6) {
+      final val = int.tryParse(hex, radix: 16);
+      if (val != null) {
+        setState(() {
+          final h = HSLColor.fromColor(Color(0xFF000000 | val));
+          _hsv = HSVColor.fromAHSV(1, h.hue, h.saturation, h.lightness);
+        });
+      }
+    } else {
+      _syncHex();
+    }
+  }
+}
+
+class _SvPanelPainter extends CustomPainter {
+  final double hue;
+  _SvPanelPainter({required this.hue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 底色：当前色相全亮全饱和
+    final hueColor = HSVColor.fromAHSV(1, hue, 1, 1).toColor();
+    canvas.drawRect(Offset.zero & size, Paint()..color = hueColor);
+    // 横向：白 -> 透明（饱和度）
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Colors.white, Color(0x00FFFFFF)],
+        ).createShader(Offset.zero & size),
+    );
+    // 纵向：透明 -> 黑（明度）
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x00000000), Color(0xFF000000)],
+        ).createShader(Offset.zero & size),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SvPanelPainter old) => old.hue != hue;
 }

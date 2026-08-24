@@ -152,6 +152,7 @@ class PomodoroController extends Notifier<PomodoroState>
     state = PomodoroState(
       workMinutes: state.workMinutes,
       restMinutes: state.restMinutes,
+      remainingSeconds: state.workMinutes * 60,
     );
     _startedAt = null;
     if (wasActive && wasFocus) {
@@ -221,6 +222,7 @@ class PomodoroController extends Notifier<PomodoroState>
       state = PomodoroState(
         workMinutes: state.workMinutes,
         restMinutes: state.restMinutes,
+        remainingSeconds: state.workMinutes * 60,
       );
     }
   }

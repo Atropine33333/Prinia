@@ -35,6 +35,9 @@ dependencies:
   # SVG 渲染（猫猫头图标等）
   flutter_svg: ^2.2.0
 
+  # 高刷新率（120fps，不支持时系统回退）
+  flutter_displaymode: ^0.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

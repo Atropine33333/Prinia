@@ -36,7 +36,7 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
   late TextEditingController _nameCtrl;
   late TextEditingController _teacherCtrl;
   late TextEditingController _roomCtrl;
-  late int _weekday;
+  late Set<int> _weekdays;
   late int _startWeek;
   late int _endWeek;
   late int _startHour;
@@ -53,13 +53,13 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     _nameCtrl = TextEditingController(text: e?.name);
     _teacherCtrl = TextEditingController(text: e?.teacher);
     _roomCtrl = TextEditingController(text: e?.room);
-    _weekday = e?.weekday ?? widget.initialWeekday;
+    _weekdays = e != null ? {e.weekday} : {widget.initialWeekday};
     _startWeek = e?.startWeek ?? 1;
     _endWeek = e?.endWeek ?? 16;
     _startHour = e?.startHour ?? widget.initialHour;
     _durationHours = e?.durationHours ?? 1;
     _colorHex = e?.colorHex ??
-        coursePalette[(e == null ? _weekday : e.id) % coursePalette.length];
+        coursePalette[(e == null ? widget.initialWeekday : e.id) % coursePalette.length];
     _reminders = e == null ? [] : parseReminders(e.remindersJson);
   }
 
@@ -116,14 +116,24 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
             spacing: 8,
             children: [
               for (var d = 1; d <= 7; d++)
-                ChoiceChip(
+                FilterChip(
                   label: Text('周${'一二三四五六日'[d - 1]}'),
-                  selected: _weekday == d,
-                  onSelected: (_) => setState(() => _weekday = d),
+                  selected: _weekdays.contains(d),
+                  onSelected: (on) {
+                    setState(() {
+                      if (on) {
+                        _weekdays.add(d);
+                      } else if (_weekdays.length > 1) {
+                        _weekdays.remove(d);
+                      }
+                    });
+                  },
                   selectedColor: colors.activeBg,
+                  labelStyle: TextStyle(color: colors.text),
                   side: BorderSide(
-                      color:
-                          _weekday == d ? colors.primary : colors.border),
+                      color: _weekdays.contains(d)
+                          ? colors.primary
+                          : colors.border),
                   showCheckmark: false,
                 ),
             ],
@@ -300,7 +310,7 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
           : _teacherCtrl.text.trim()),
       room: Value(
           _roomCtrl.text.trim().isEmpty ? null : _roomCtrl.text.trim()),
-      weekday: _weekday,
+      weekday: _weekdays.first,
       startWeek: _startWeek,
       endWeek: _endWeek,
       startHour: Value(_startHour),
@@ -323,14 +333,19 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
         );
       }
     } else {
-      final id = await db.coursesDao.insertCourse(companion);
-      for (var i = 0; i < _reminders.length; i++) {
-        await NotificationService.scheduleCourseReminder(
-          courseId: id,
-          reminderIndex: i,
-          date: _reminders[i].date,
-          text: _reminders[i].text,
+      // 多选星期：每天各建一条
+      for (final wd in _weekdays) {
+        final id = await db.coursesDao.insertCourse(
+          companion.copyWith(weekday: Value(wd)),
         );
+        for (var i = 0; i < _reminders.length; i++) {
+          await NotificationService.scheduleCourseReminder(
+            courseId: id,
+            reminderIndex: i,
+            date: _reminders[i].date,
+            text: _reminders[i].text,
+          );
+        }
       }
     }
     if (mounted) Navigator.of(context).pop();
