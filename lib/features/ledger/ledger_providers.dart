@@ -31,12 +31,27 @@ final dailyExpenseProvider = StreamProvider<Map<int, double>>((ref) {
   return db.accountsDao.watchDailyExpense(month.year, month.month);
 });
 
-/// 当月分类占比流（饼图），在 Dart 侧聚合。
+/// 统计页饼图当前查看的日期（默认今天，限当月）。
+final selectedStatsDayProvider = StateProvider<int>((ref) {
+  final n = ref.watch(selectedMonthProvider);
+  final now = DateTime.now();
+  return (n.year == now.year && n.month == now.month) ? now.day : 1;
+});
+
+/// 指定日期的分类占比流（饼图），在 Dart 侧聚合。
 final categoryTotalsProvider =
     StreamProvider<List<(String, double)>>((ref) {
   final accounts = ref.watch(accountsStreamProvider).value ?? const [];
+  final month = ref.watch(selectedMonthProvider);
+  final day = ref.watch(selectedStatsDayProvider);
+  final start =
+      DateTime(month.year, month.month, day).millisecondsSinceEpoch;
+  final end = DateTime(month.year, month.month, day + 1).millisecondsSinceEpoch;
   final map = <String, double>{};
-  for (final a in accounts.where((a) => a.type == 'expense')) {
+  for (final a in accounts.where((a) =>
+      a.type == 'expense' &&
+      a.occurredAt >= start &&
+      a.occurredAt < end)) {
     map[a.category] = (map[a.category] ?? 0) + a.amount;
   }
   final list = map.entries.toList()

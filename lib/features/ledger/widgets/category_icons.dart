@@ -29,13 +29,3 @@ Widget categoryIconByCode(int codePoint, AppColors colors,
         {double size = 22}) =>
     AppIconView(codePoint: codePoint, color: colors.primary, size: size);
 
-/// 类别在饼图中的固定色序（低饱和，取自主题派生）。
-List<Color> piePalette(AppColors c) => [
-      c.primary,
-      c.highlight,
-      c.primaryHover,
-      c.activeBg,
-      c.borderStrong,
-      c.error.withValues(alpha: 0.75),
-      c.textMuted.withValues(alpha: 0.6),
-    ];

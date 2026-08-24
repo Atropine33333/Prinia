@@ -307,6 +307,8 @@ class _StatsView extends ConsumerWidget {
                         fontWeight: FontWeight.w600,
                         color: colors.text)),
                 const SizedBox(height: 8),
+                const _DaySelector(),
+                const SizedBox(height: 8),
                 categories.maybeWhen(
                   loading: () => const SizedBox(height: 160),
                   orElse: () => categories.value == null ||
@@ -402,6 +404,53 @@ class _PieWithLegend extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 饼图的日期选择行（当月各天横滑）。
+class _DaySelector extends ConsumerWidget {
+  const _DaySelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final month = ref.watch(selectedMonthProvider);
+    final selected = ref.watch(selectedStatsDayProvider);
+    final now = DateTime.now();
+    final daysInMonth =
+        DateTime(month.year, month.month + 1).difference(DateTime(month.year, month.month)).inDays;
+    final maxDay = (month.year == now.year && month.month == now.month)
+        ? now.day
+        : daysInMonth;
+
+    return SizedBox(
+      height: 36,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: maxDay,
+        itemBuilder: (ctx, i) {
+          final d = i + 1;
+          final isSel = d == selected;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: ChoiceChip(
+              label: Text('$d'),
+              selected: isSel,
+              onSelected: (_) =>
+                  ref.read(selectedStatsDayProvider.notifier).state = d,
+              selectedColor: colors.activeBg,
+              labelStyle: TextStyle(
+                  fontSize: 12,
+                  color: isSel ? colors.primary : colors.textMuted),
+              side: BorderSide(
+                  color: isSel ? colors.primary : colors.border),
+              showCheckmark: false,
+              visualDensity: VisualDensity.compact,
+            ),
+          );
+        },
+      ),
     );
   }
 }
