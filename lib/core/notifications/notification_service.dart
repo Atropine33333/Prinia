@@ -41,8 +41,14 @@ class NotificationService {
 
   // ── 饭点提醒 ────────────────────────────────────────────────
 
-  /// 开/关每日 12:00 与 18:00 的记账提醒。
-  static Future<void> setMealReminder(bool enabled) async {
+  /// 开/关每日两次的记账提醒（时刻可自定义）。
+  static Future<void> setMealReminder(
+    bool enabled, {
+    int firstHour = 12,
+    int firstMinute = 0,
+    int secondHour = 18,
+    int secondMinute = 0,
+  }) async {
     await init();
     if (!enabled) {
       await _plugin.cancel(_mealNoonId);
@@ -62,7 +68,7 @@ class NotificationService {
       _mealNoonId,
       '该记账啦！',
       '记录一下今天的开销吧',
-      _nextDailyAt(12, 0),
+      _nextDailyAt(firstHour, firstMinute),
       details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
@@ -72,7 +78,7 @@ class NotificationService {
       _mealEveningId,
       '该记账啦！',
       '记录一下今天的开销吧',
-      _nextDailyAt(18, 0),
+      _nextDailyAt(secondHour, secondMinute),
       details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
@@ -116,6 +122,59 @@ class NotificationService {
     for (var i = 0; i < count; i++) {
       await _plugin.cancel(_courseReminderBase + courseId * 16 + i);
     }
+  }
+
+  // ── 番茄钟 ─────────────────────────────────────────────────
+
+  static const _pomodoroNowId = 50;
+  static const _pomodoroScheduledId = 51;
+
+  /// 番茄钟即时通知（溜号召回 / 休息将结束）。
+  static Future<void> showPomodoro(String body, {String? payload}) async {
+    await init();
+    await _plugin.show(
+      _pomodoroNowId,
+      'Prinia 番茄钟',
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'pomodoro',
+          '番茄钟',
+          channelDescription: '专注状态提醒',
+          importance: Importance.high,
+          priority: Priority.high,
+          fullScreenIntent: false,
+        ),
+      ),
+      payload: payload ?? 'pomodoro_back',
+    );
+  }
+
+  /// 延时一次性番茄钟通知。
+  static Future<void> schedulePomodoroIn(Duration delay, String body) async {
+    await init();
+    final fireAt = tz.TZDateTime.now(tz.UTC).add(delay);
+    await _plugin.zonedSchedule(
+      _pomodoroScheduledId,
+      'Prinia 番茄钟',
+      body,
+      fireAt,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'pomodoro',
+          '番茄钟',
+          channelDescription: '专注状态提醒',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      payload: 'pomodoro_back',
+    );
+  }
+
+  static Future<void> cancelScheduledPomodoro() async {
+    await _plugin.cancel(_pomodoroScheduledId);
   }
 
   /// 当前已调度的通知数量（用于推断饭点提醒开关状态）。

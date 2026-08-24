@@ -53,6 +53,7 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
               _CategoryOption(
                 name: name,
                 codePoint: incomeDefaultIcons[name]!.codePoint,
+                builtin: incomeDefaultIcons[name],
               ),
           ]
         : [
@@ -60,6 +61,7 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
               _CategoryOption(
                 name: name,
                 codePoint: expenseCategoryMeta[name]!.codePoint,
+                builtin: expenseCategoryMeta[name],
               ),
           ];
     return [
@@ -279,10 +281,14 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
 class _CategoryOption {
   final String name;
   final int codePoint;
+
+  /// 内置标签的图标（直接渲染，避免码点反查失败）。
+  final IconData? builtin;
   final bool isCustom;
   const _CategoryOption({
     required this.name,
     required this.codePoint,
+    this.builtin,
     this.isCustom = false,
   });
 }
@@ -306,11 +312,16 @@ class _CategoryChip extends StatelessWidget {
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppIconView(
-            codePoint: option.codePoint,
-            color: selected ? colors.primary : colors.textMuted,
-            size: 16,
-          ),
+          if (option.builtin != null)
+            Icon(option.builtin,
+                size: 16,
+                color: selected ? colors.primary : colors.textMuted)
+          else
+            AppIconView(
+              codePoint: option.codePoint,
+              color: selected ? colors.primary : colors.textMuted,
+              size: 16,
+            ),
           const SizedBox(width: 6),
           Text(option.name),
         ],

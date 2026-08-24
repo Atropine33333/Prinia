@@ -19,13 +19,13 @@ const coursePalette = [
 class CourseEditPage extends ConsumerStatefulWidget {
   final CourseRow? existing;
   final int initialWeekday;
-  final int initialSlot;
+  final int initialHour;
 
   const CourseEditPage({
     super.key,
     this.existing,
     this.initialWeekday = 1,
-    this.initialSlot = 1,
+    this.initialHour = 8,
   });
 
   @override
@@ -39,8 +39,8 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
   late int _weekday;
   late int _startWeek;
   late int _endWeek;
-  late int _startSlot;
-  late int _endSlot;
+  late int _startHour;
+  late int _durationHours;
   late String _colorHex;
   late List<CourseReminder> _reminders;
 
@@ -56,8 +56,8 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     _weekday = e?.weekday ?? widget.initialWeekday;
     _startWeek = e?.startWeek ?? 1;
     _endWeek = e?.endWeek ?? 16;
-    _startSlot = e?.startSlot ?? widget.initialSlot;
-    _endSlot = e?.endSlot ?? (e == null ? widget.initialSlot : e.startSlot);
+    _startHour = e?.startHour ?? widget.initialHour;
+    _durationHours = e?.durationHours ?? 1;
     _colorHex = e?.colorHex ??
         coursePalette[(e == null ? _weekday : e.id) % coursePalette.length];
     _reminders = e == null ? [] : parseReminders(e.remindersJson);
@@ -129,27 +129,25 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
             ],
           ),
           const SizedBox(height: 16),
-          // 节次
-          _SectionLabel('节次（第 $_startSlot ~ $_endSlot 节）'),
+          // 时间
+          _SectionLabel(
+              '时间（$_startHour:00 – ${_startHour + _durationHours}:00）'),
           Row(
             children: [
               _Stepper(
                 label: '开始',
-                value: _startSlot,
-                min: 1,
-                max: _endSlot,
-                onChanged: (v) => setState(() {
-                  _startSlot = v;
-                  if (_endSlot < v) _endSlot = v;
-                }),
+                value: _startHour,
+                min: 0,
+                max: 23 - _durationHours,
+                onChanged: (v) => setState(() => _startHour = v),
               ),
               const SizedBox(width: 16),
               _Stepper(
-                label: '结束',
-                value: _endSlot,
-                min: _startSlot,
-                max: 12,
-                onChanged: (v) => setState(() => _endSlot = v),
+                label: '时长',
+                value: _durationHours,
+                min: 1,
+                max: 24 - _startHour,
+                onChanged: (v) => setState(() => _durationHours = v),
               ),
             ],
           ),
@@ -305,8 +303,8 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
       weekday: _weekday,
       startWeek: _startWeek,
       endWeek: _endWeek,
-      startSlot: _startSlot,
-      endSlot: _endSlot,
+      startHour: Value(_startHour),
+      durationHours: Value(_durationHours),
       colorHex: Value(_colorHex),
       remindersJson: Value(encodeReminders(_reminders)),
     );

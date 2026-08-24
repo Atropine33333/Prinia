@@ -80,10 +80,15 @@ class Courses extends Table with SyncColumns {
 
   IntColumn get endWeek => integer().named('end_week')();
 
-  /// 1~12 节
-  IntColumn get startSlot => integer().named('start_slot')();
+  /// 开始小时（0~23，24 小时制）
+  IntColumn get startHour => integer()
+      .named('start_hour')
+      .clientDefault(() => 8)();
 
-  IntColumn get endSlot => integer().named('end_slot')();
+  /// 时长（小时，≥1）
+  IntColumn get durationHours => integer()
+      .named('duration_hours')
+      .clientDefault(() => 1)();
 
   TextColumn get colorHex => text()
       .named('color_hex')

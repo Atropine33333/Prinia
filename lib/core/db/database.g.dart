@@ -1230,27 +1230,29 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _startSlotMeta = const VerificationMeta(
-    'startSlot',
+  static const VerificationMeta _startHourMeta = const VerificationMeta(
+    'startHour',
   );
   @override
-  late final GeneratedColumn<int> startSlot = GeneratedColumn<int>(
-    'start_slot',
+  late final GeneratedColumn<int> startHour = GeneratedColumn<int>(
+    'start_hour',
     aliasedName,
     false,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
+    clientDefault: () => 8,
   );
-  static const VerificationMeta _endSlotMeta = const VerificationMeta(
-    'endSlot',
+  static const VerificationMeta _durationHoursMeta = const VerificationMeta(
+    'durationHours',
   );
   @override
-  late final GeneratedColumn<int> endSlot = GeneratedColumn<int>(
-    'end_slot',
+  late final GeneratedColumn<int> durationHours = GeneratedColumn<int>(
+    'duration_hours',
     aliasedName,
     false,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
+    clientDefault: () => 1,
   );
   static const VerificationMeta _colorHexMeta = const VerificationMeta(
     'colorHex',
@@ -1292,8 +1294,8 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
     weekday,
     startWeek,
     endWeek,
-    startSlot,
-    endSlot,
+    startHour,
+    durationHours,
     colorHex,
     remindersJson,
   ];
@@ -1374,21 +1376,20 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
     } else if (isInserting) {
       context.missing(_endWeekMeta);
     }
-    if (data.containsKey('start_slot')) {
+    if (data.containsKey('start_hour')) {
       context.handle(
-        _startSlotMeta,
-        startSlot.isAcceptableOrUnknown(data['start_slot']!, _startSlotMeta),
+        _startHourMeta,
+        startHour.isAcceptableOrUnknown(data['start_hour']!, _startHourMeta),
       );
-    } else if (isInserting) {
-      context.missing(_startSlotMeta);
     }
-    if (data.containsKey('end_slot')) {
+    if (data.containsKey('duration_hours')) {
       context.handle(
-        _endSlotMeta,
-        endSlot.isAcceptableOrUnknown(data['end_slot']!, _endSlotMeta),
+        _durationHoursMeta,
+        durationHours.isAcceptableOrUnknown(
+          data['duration_hours']!,
+          _durationHoursMeta,
+        ),
       );
-    } else if (isInserting) {
-      context.missing(_endSlotMeta);
     }
     if (data.containsKey('color_hex')) {
       context.handle(
@@ -1454,13 +1455,13 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
         DriftSqlType.int,
         data['${effectivePrefix}end_week'],
       )!,
-      startSlot: attachedDatabase.typeMapping.read(
+      startHour: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}start_slot'],
+        data['${effectivePrefix}start_hour'],
       )!,
-      endSlot: attachedDatabase.typeMapping.read(
+      durationHours: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}end_slot'],
+        data['${effectivePrefix}duration_hours'],
       )!,
       colorHex: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -1493,9 +1494,11 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   final int startWeek;
   final int endWeek;
 
-  /// 1~12 节
-  final int startSlot;
-  final int endSlot;
+  /// 开始小时（0~23，24 小时制）
+  final int startHour;
+
+  /// 时长（小时，≥1）
+  final int durationHours;
   final String colorHex;
 
   /// JSON 数组：[{"date":"2025-12-01","text":"交作业"}]
@@ -1511,8 +1514,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     required this.weekday,
     required this.startWeek,
     required this.endWeek,
-    required this.startSlot,
-    required this.endSlot,
+    required this.startHour,
+    required this.durationHours,
     required this.colorHex,
     required this.remindersJson,
   });
@@ -1533,8 +1536,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     map['weekday'] = Variable<int>(weekday);
     map['start_week'] = Variable<int>(startWeek);
     map['end_week'] = Variable<int>(endWeek);
-    map['start_slot'] = Variable<int>(startSlot);
-    map['end_slot'] = Variable<int>(endSlot);
+    map['start_hour'] = Variable<int>(startHour);
+    map['duration_hours'] = Variable<int>(durationHours);
     map['color_hex'] = Variable<String>(colorHex);
     map['reminders_json'] = Variable<String>(remindersJson);
     return map;
@@ -1554,8 +1557,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
       weekday: Value(weekday),
       startWeek: Value(startWeek),
       endWeek: Value(endWeek),
-      startSlot: Value(startSlot),
-      endSlot: Value(endSlot),
+      startHour: Value(startHour),
+      durationHours: Value(durationHours),
       colorHex: Value(colorHex),
       remindersJson: Value(remindersJson),
     );
@@ -1577,8 +1580,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
       weekday: serializer.fromJson<int>(json['weekday']),
       startWeek: serializer.fromJson<int>(json['startWeek']),
       endWeek: serializer.fromJson<int>(json['endWeek']),
-      startSlot: serializer.fromJson<int>(json['startSlot']),
-      endSlot: serializer.fromJson<int>(json['endSlot']),
+      startHour: serializer.fromJson<int>(json['startHour']),
+      durationHours: serializer.fromJson<int>(json['durationHours']),
       colorHex: serializer.fromJson<String>(json['colorHex']),
       remindersJson: serializer.fromJson<String>(json['remindersJson']),
     );
@@ -1597,8 +1600,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
       'weekday': serializer.toJson<int>(weekday),
       'startWeek': serializer.toJson<int>(startWeek),
       'endWeek': serializer.toJson<int>(endWeek),
-      'startSlot': serializer.toJson<int>(startSlot),
-      'endSlot': serializer.toJson<int>(endSlot),
+      'startHour': serializer.toJson<int>(startHour),
+      'durationHours': serializer.toJson<int>(durationHours),
       'colorHex': serializer.toJson<String>(colorHex),
       'remindersJson': serializer.toJson<String>(remindersJson),
     };
@@ -1615,8 +1618,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     int? weekday,
     int? startWeek,
     int? endWeek,
-    int? startSlot,
-    int? endSlot,
+    int? startHour,
+    int? durationHours,
     String? colorHex,
     String? remindersJson,
   }) => CourseRow(
@@ -1630,8 +1633,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     weekday: weekday ?? this.weekday,
     startWeek: startWeek ?? this.startWeek,
     endWeek: endWeek ?? this.endWeek,
-    startSlot: startSlot ?? this.startSlot,
-    endSlot: endSlot ?? this.endSlot,
+    startHour: startHour ?? this.startHour,
+    durationHours: durationHours ?? this.durationHours,
     colorHex: colorHex ?? this.colorHex,
     remindersJson: remindersJson ?? this.remindersJson,
   );
@@ -1647,8 +1650,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
       weekday: data.weekday.present ? data.weekday.value : this.weekday,
       startWeek: data.startWeek.present ? data.startWeek.value : this.startWeek,
       endWeek: data.endWeek.present ? data.endWeek.value : this.endWeek,
-      startSlot: data.startSlot.present ? data.startSlot.value : this.startSlot,
-      endSlot: data.endSlot.present ? data.endSlot.value : this.endSlot,
+      startHour: data.startHour.present ? data.startHour.value : this.startHour,
+      durationHours: data.durationHours.present
+          ? data.durationHours.value
+          : this.durationHours,
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
       remindersJson: data.remindersJson.present
           ? data.remindersJson.value
@@ -1669,8 +1674,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
           ..write('weekday: $weekday, ')
           ..write('startWeek: $startWeek, ')
           ..write('endWeek: $endWeek, ')
-          ..write('startSlot: $startSlot, ')
-          ..write('endSlot: $endSlot, ')
+          ..write('startHour: $startHour, ')
+          ..write('durationHours: $durationHours, ')
           ..write('colorHex: $colorHex, ')
           ..write('remindersJson: $remindersJson')
           ..write(')'))
@@ -1689,8 +1694,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     weekday,
     startWeek,
     endWeek,
-    startSlot,
-    endSlot,
+    startHour,
+    durationHours,
     colorHex,
     remindersJson,
   );
@@ -1708,8 +1713,8 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
           other.weekday == this.weekday &&
           other.startWeek == this.startWeek &&
           other.endWeek == this.endWeek &&
-          other.startSlot == this.startSlot &&
-          other.endSlot == this.endSlot &&
+          other.startHour == this.startHour &&
+          other.durationHours == this.durationHours &&
           other.colorHex == this.colorHex &&
           other.remindersJson == this.remindersJson);
 }
@@ -1725,8 +1730,8 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
   final Value<int> weekday;
   final Value<int> startWeek;
   final Value<int> endWeek;
-  final Value<int> startSlot;
-  final Value<int> endSlot;
+  final Value<int> startHour;
+  final Value<int> durationHours;
   final Value<String> colorHex;
   final Value<String> remindersJson;
   const CoursesCompanion({
@@ -1740,8 +1745,8 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     this.weekday = const Value.absent(),
     this.startWeek = const Value.absent(),
     this.endWeek = const Value.absent(),
-    this.startSlot = const Value.absent(),
-    this.endSlot = const Value.absent(),
+    this.startHour = const Value.absent(),
+    this.durationHours = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.remindersJson = const Value.absent(),
   });
@@ -1756,16 +1761,14 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     required int weekday,
     required int startWeek,
     required int endWeek,
-    required int startSlot,
-    required int endSlot,
+    this.startHour = const Value.absent(),
+    this.durationHours = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.remindersJson = const Value.absent(),
   }) : name = Value(name),
        weekday = Value(weekday),
        startWeek = Value(startWeek),
-       endWeek = Value(endWeek),
-       startSlot = Value(startSlot),
-       endSlot = Value(endSlot);
+       endWeek = Value(endWeek);
   static Insertable<CourseRow> custom({
     Expression<int>? updatedAt,
     Expression<String>? deviceId,
@@ -1777,8 +1780,8 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     Expression<int>? weekday,
     Expression<int>? startWeek,
     Expression<int>? endWeek,
-    Expression<int>? startSlot,
-    Expression<int>? endSlot,
+    Expression<int>? startHour,
+    Expression<int>? durationHours,
     Expression<String>? colorHex,
     Expression<String>? remindersJson,
   }) {
@@ -1793,8 +1796,8 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
       if (weekday != null) 'weekday': weekday,
       if (startWeek != null) 'start_week': startWeek,
       if (endWeek != null) 'end_week': endWeek,
-      if (startSlot != null) 'start_slot': startSlot,
-      if (endSlot != null) 'end_slot': endSlot,
+      if (startHour != null) 'start_hour': startHour,
+      if (durationHours != null) 'duration_hours': durationHours,
       if (colorHex != null) 'color_hex': colorHex,
       if (remindersJson != null) 'reminders_json': remindersJson,
     });
@@ -1811,8 +1814,8 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     Value<int>? weekday,
     Value<int>? startWeek,
     Value<int>? endWeek,
-    Value<int>? startSlot,
-    Value<int>? endSlot,
+    Value<int>? startHour,
+    Value<int>? durationHours,
     Value<String>? colorHex,
     Value<String>? remindersJson,
   }) {
@@ -1827,8 +1830,8 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
       weekday: weekday ?? this.weekday,
       startWeek: startWeek ?? this.startWeek,
       endWeek: endWeek ?? this.endWeek,
-      startSlot: startSlot ?? this.startSlot,
-      endSlot: endSlot ?? this.endSlot,
+      startHour: startHour ?? this.startHour,
+      durationHours: durationHours ?? this.durationHours,
       colorHex: colorHex ?? this.colorHex,
       remindersJson: remindersJson ?? this.remindersJson,
     );
@@ -1867,11 +1870,11 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     if (endWeek.present) {
       map['end_week'] = Variable<int>(endWeek.value);
     }
-    if (startSlot.present) {
-      map['start_slot'] = Variable<int>(startSlot.value);
+    if (startHour.present) {
+      map['start_hour'] = Variable<int>(startHour.value);
     }
-    if (endSlot.present) {
-      map['end_slot'] = Variable<int>(endSlot.value);
+    if (durationHours.present) {
+      map['duration_hours'] = Variable<int>(durationHours.value);
     }
     if (colorHex.present) {
       map['color_hex'] = Variable<String>(colorHex.value);
@@ -1895,8 +1898,8 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
           ..write('weekday: $weekday, ')
           ..write('startWeek: $startWeek, ')
           ..write('endWeek: $endWeek, ')
-          ..write('startSlot: $startSlot, ')
-          ..write('endSlot: $endSlot, ')
+          ..write('startHour: $startHour, ')
+          ..write('durationHours: $durationHours, ')
           ..write('colorHex: $colorHex, ')
           ..write('remindersJson: $remindersJson')
           ..write(')'))
@@ -2954,8 +2957,8 @@ typedef $$CoursesTableCreateCompanionBuilder = CoursesCompanion Function({
   required int weekday,
   required int startWeek,
   required int endWeek,
-  required int startSlot,
-  required int endSlot,
+  Value<int> startHour,
+  Value<int> durationHours,
   Value<String> colorHex,
   Value<String> remindersJson,
 });
@@ -2970,8 +2973,8 @@ typedef $$CoursesTableUpdateCompanionBuilder = CoursesCompanion Function({
   Value<int> weekday,
   Value<int> startWeek,
   Value<int> endWeek,
-  Value<int> startSlot,
-  Value<int> endSlot,
+  Value<int> startHour,
+  Value<int> durationHours,
   Value<String> colorHex,
   Value<String> remindersJson,
 });
@@ -3035,13 +3038,13 @@ class $$CoursesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get startSlot => $composableBuilder(
-    column: $table.startSlot,
+  ColumnFilters<int> get startHour => $composableBuilder(
+    column: $table.startHour,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get endSlot => $composableBuilder(
-    column: $table.endSlot,
+  ColumnFilters<int> get durationHours => $composableBuilder(
+    column: $table.durationHours,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3115,13 +3118,13 @@ class $$CoursesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get startSlot => $composableBuilder(
-    column: $table.startSlot,
+  ColumnOrderings<int> get startHour => $composableBuilder(
+    column: $table.startHour,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get endSlot => $composableBuilder(
-    column: $table.endSlot,
+  ColumnOrderings<int> get durationHours => $composableBuilder(
+    column: $table.durationHours,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3175,11 +3178,13 @@ class $$CoursesTableAnnotationComposer
   GeneratedColumn<int> get endWeek =>
       $composableBuilder(column: $table.endWeek, builder: (column) => column);
 
-  GeneratedColumn<int> get startSlot =>
-      $composableBuilder(column: $table.startSlot, builder: (column) => column);
+  GeneratedColumn<int> get startHour =>
+      $composableBuilder(column: $table.startHour, builder: (column) => column);
 
-  GeneratedColumn<int> get endSlot =>
-      $composableBuilder(column: $table.endSlot, builder: (column) => column);
+  GeneratedColumn<int> get durationHours => $composableBuilder(
+    column: $table.durationHours,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get colorHex =>
       $composableBuilder(column: $table.colorHex, builder: (column) => column);
@@ -3228,8 +3233,8 @@ class $$CoursesTableTableManager
                 Value<int> weekday = const Value.absent(),
                 Value<int> startWeek = const Value.absent(),
                 Value<int> endWeek = const Value.absent(),
-                Value<int> startSlot = const Value.absent(),
-                Value<int> endSlot = const Value.absent(),
+                Value<int> startHour = const Value.absent(),
+                Value<int> durationHours = const Value.absent(),
                 Value<String> colorHex = const Value.absent(),
                 Value<String> remindersJson = const Value.absent(),
               }) => CoursesCompanion(
@@ -3243,8 +3248,8 @@ class $$CoursesTableTableManager
                 weekday: weekday,
                 startWeek: startWeek,
                 endWeek: endWeek,
-                startSlot: startSlot,
-                endSlot: endSlot,
+                startHour: startHour,
+                durationHours: durationHours,
                 colorHex: colorHex,
                 remindersJson: remindersJson,
               ),
@@ -3260,8 +3265,8 @@ class $$CoursesTableTableManager
                 required int weekday,
                 required int startWeek,
                 required int endWeek,
-                required int startSlot,
-                required int endSlot,
+                Value<int> startHour = const Value.absent(),
+                Value<int> durationHours = const Value.absent(),
                 Value<String> colorHex = const Value.absent(),
                 Value<String> remindersJson = const Value.absent(),
               }) => CoursesCompanion.insert(
@@ -3275,8 +3280,8 @@ class $$CoursesTableTableManager
                 weekday: weekday,
                 startWeek: startWeek,
                 endWeek: endWeek,
-                startSlot: startSlot,
-                endSlot: endSlot,
+                startHour: startHour,
+                durationHours: durationHours,
                 colorHex: colorHex,
                 remindersJson: remindersJson,
               ),

@@ -17,7 +17,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   /// 当前设备标识（未来多端同步时区分来源）。
   String get deviceId => NoOpSyncService.deviceId;
@@ -27,6 +27,11 @@ class AppDatabase extends _$AppDatabase {
         onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
           if (from < 2) await m.createTable(customCategories);
+          if (from < 3) {
+            // 调试阶段：课程表结构变更直接重建，不迁移旧数据
+            await customStatement('DROP TABLE IF EXISTS courses');
+            await m.createTable(courses);
+          }
         },
       );
 }

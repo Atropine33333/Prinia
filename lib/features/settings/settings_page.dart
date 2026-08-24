@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -19,6 +20,8 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _mealReminder = false;
+  TimeOfDay _first = const TimeOfDay(hour: 12, minute: 0);
+  TimeOfDay _second = const TimeOfDay(hour: 18, minute: 0);
 
   @override
   void initState() {
@@ -27,8 +30,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _loadReminderState() async {
+    final sp = await SharedPreferences.getInstance();
+    final f = sp.getString('meal_first');
+    final s2 = sp.getString('meal_second');
+    if (!mounted) return;
+    if (f != null) _first = _parseTod(f);
+    if (s2 != null) _second = _parseTod(s2);
     final pending = await NotificationService.pendingCount();
     if (mounted) setState(() => _mealReminder = pending >= 2);
+  }
+
+  static TimeOfDay _parseTod(String s) {
+    final parts = s.split(':');
+    return TimeOfDay(
+        hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  static String _fmtTod(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _applyReminder(bool enabled) async {
+    final sp = await SharedPreferences.getInstance();
+    await sp.setString('meal_first', _fmtTod(_first));
+    await sp.setString('meal_second', _fmtTod(_second));
+    await NotificationService.setMealReminder(
+      enabled,
+      firstHour: _first.hour,
+      firstMinute: _first.minute,
+      secondHour: _second.hour,
+      secondMinute: _second.minute,
+    );
   }
 
   Future<void> _toggleMealReminder(bool v) async {
@@ -42,7 +73,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         return;
       }
     }
-    await NotificationService.setMealReminder(v);
+    await _applyReminder(v);
     if (mounted) setState(() => _mealReminder = v);
   }
 
@@ -134,11 +165,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             contentPadding: EdgeInsets.zero,
             title: Text('饭点记账提醒',
                 style: TextStyle(color: colors.text, fontSize: 15)),
-            subtitle: Text('每天 12:00 / 18:00 提醒你记账',
+            subtitle: Text('每天提醒你记账',
                 style: TextStyle(color: colors.textMuted, fontSize: 12)),
             value: _mealReminder,
             activeThumbColor: colors.primary,
             onChanged: _toggleMealReminder,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('第一次提醒',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            trailing: Text(_fmtTod(_first),
+                style: TextStyle(fontSize: 15, color: colors.primary)),
+            onTap: () async {
+              final t = await showTimePicker(
+                  context: context, initialTime: _first);
+              if (t != null) {
+                setState(() => _first = t);
+                if (_mealReminder) await _applyReminder(true);
+              }
+            },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('第二次提醒',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            trailing: Text(_fmtTod(_second),
+                style: TextStyle(fontSize: 15, color: colors.primary)),
+            onTap: () async {
+              final t = await showTimePicker(
+                  context: context, initialTime: _second);
+              if (t != null) {
+                setState(() => _second = t);
+                if (_mealReminder) await _applyReminder(true);
+              }
+            },
           ),
           const SizedBox(height: 24),
           // ── 课表 ──
