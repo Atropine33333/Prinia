@@ -2,7 +2,7 @@ name: octo_note
 description: "OctoNote - 记账、番茄钟、课表一体化本地效率工具"
 publish_to: 'none'
 
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.13.1

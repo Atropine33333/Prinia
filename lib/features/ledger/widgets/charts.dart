@@ -53,7 +53,9 @@ class ExpenseBarChart extends StatelessWidget {
       onDayChanged(null);
       return;
     }
-    onDayChanged(selectedDay == day ? null : day);
+    final v = data[day] ?? 0;
+    // 选中同一天或点零值日 → 回到月总览
+    onDayChanged(selectedDay == day || v <= 0 ? null : day);
   }
 }
 

@@ -308,21 +308,38 @@ class _StatsViewState extends ConsumerState<_StatsView> {
           ),
         ),
         const SizedBox(height: 16),
-        // 分类占比饼图
+        // 分类占比饼图（点击卡片回到月总览）
         Card(
-          child: Padding(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _barSelectedDay == null
+                ? null
+                : () => setState(() {
+                      _barSelectedDay = null;
+                      ref.read(selectedStatsDayProvider.notifier).state = null;
+                    }),
+            child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  ref.watch(selectedStatsDayProvider) == null
-                      ? '分类占比 · 本月'
-                      : '分类占比 · ${ref.watch(selectedStatsDayProvider)}日',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: colors.text),
+                Row(
+                  children: [
+                    Text(
+                      ref.watch(selectedStatsDayProvider) == null
+                          ? '分类占比 · 本月'
+                          : '分类占比 · ${ref.watch(selectedStatsDayProvider)}日',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: colors.text),
+                    ),
+                    const Spacer(),
+                    if (ref.watch(selectedStatsDayProvider) != null)
+                      Text('点此返回月总览',
+                          style: TextStyle(
+                              fontSize: 11, color: colors.textMuted)),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 categories.maybeWhen(
@@ -342,6 +359,7 @@ class _StatsViewState extends ConsumerState<_StatsView> {
             ),
           ),
         ),
+      ),
       ],
     );
   }
