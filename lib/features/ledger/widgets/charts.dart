@@ -5,20 +5,19 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// 每日支出柱状图：固定 0~300 坐标系，超顶满格并标数字，点击显示金额。
-class ExpenseBarChart extends StatefulWidget {
+///
+/// [selectedDay]/[onDayChanged] 受控联动外部（如饼图）。
+class ExpenseBarChart extends StatelessWidget {
   final Map<int, double> data;
+  final int? selectedDay;
+  final ValueChanged<int?> onDayChanged;
 
-  const ExpenseBarChart({super.key, required this.data});
-
-  @override
-  State<ExpenseBarChart> createState() => _ExpenseBarChartState();
-}
-
-const _axisMax = 300.0;
-const _axisLabels = [0, 100, 200, 300];
-
-class _ExpenseBarChartState extends State<ExpenseBarChart> {
-  int? _selectedDay;
+  const ExpenseBarChart({
+    super.key,
+    required this.data,
+    required this.onDayChanged,
+    this.selectedDay,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,12 +29,12 @@ class _ExpenseBarChartState extends State<ExpenseBarChart> {
         onTapUp: (d) => _handleTap(context, d.localPosition),
         child: CustomPaint(
           painter: _BarPainter(
-            data: widget.data,
+            data: data,
             barColor: colors.primary,
             faintColor: colors.border,
             labelColor: colors.textMuted,
             axisColor: colors.border,
-            selectedDay: _selectedDay,
+            selectedDay: selectedDay,
             selectedColor: colors.primaryHover,
           ),
         ),
@@ -44,21 +43,22 @@ class _ExpenseBarChartState extends State<ExpenseBarChart> {
   }
 
   void _handleTap(BuildContext context, Offset local) {
-    final days = widget.data.isEmpty ? 0 : widget.data.keys.reduce(math.max);
+    final days = data.isEmpty ? 0 : data.keys.reduce(math.max);
     if (days == 0) return;
     const axisW = 30.0;
     final chartW = context.size!.width - axisW;
     final slotW = chartW / days;
     final day = ((local.dx - axisW) / slotW).floor() + 1;
     if (day < 1 || day > days) {
-      setState(() => _selectedDay = null);
+      onDayChanged(null);
       return;
     }
-    setState(() {
-      _selectedDay = _selectedDay == day ? null : day;
-    });
+    onDayChanged(selectedDay == day ? null : day);
   }
 }
+
+const _axisMax = 300.0;
+const _axisLabels = [0, 100, 200, 300];
 
 class _BarPainter extends CustomPainter {
   final Map<int, double> data;

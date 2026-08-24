@@ -233,11 +233,18 @@ class _EmptyHint extends StatelessWidget {
 
 // ── 统计视图 ────────────────────────────────────────────────────
 
-class _StatsView extends ConsumerWidget {
+class _StatsView extends ConsumerStatefulWidget {
   const _StatsView();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StatsView> createState() => _StatsViewState();
+}
+
+class _StatsViewState extends ConsumerState<_StatsView> {
+  int? _barSelectedDay;
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final summary = ref.watch(summaryStreamProvider);
     final daily = ref.watch(dailyExpenseProvider);
@@ -287,7 +294,12 @@ class _StatsView extends ConsumerWidget {
                       height: 120,
                       child: Center(child: CircularProgressIndicator())),
                   error: (e, _) => Text('$e'),
-                  data: (m) => ExpenseBarChart(data: m),
+                  data: (m) => ExpenseBarChart(
+                    data: m,
+                    selectedDay: _barSelectedDay,
+                    onDayChanged: (d) =>
+                        setState(() => _barSelectedDay = d),
+                  ),
                 ),
               ],
             ),
@@ -301,13 +313,15 @@ class _StatsView extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('分类占比',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: colors.text)),
-                const SizedBox(height: 8),
-                const _DaySelector(),
+                Text(
+                  ref.watch(selectedStatsDayProvider) == null
+                      ? '分类占比 · 本月'
+                      : '分类占比 · ${ref.watch(selectedStatsDayProvider)}日',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.text),
+                ),
                 const SizedBox(height: 8),
                 categories.maybeWhen(
                   loading: () => const SizedBox(height: 160),
@@ -408,49 +422,3 @@ class _PieWithLegend extends StatelessWidget {
   }
 }
 
-/// 饼图的日期选择行（当月各天横滑）。
-class _DaySelector extends ConsumerWidget {
-  const _DaySelector();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final month = ref.watch(selectedMonthProvider);
-    final selected = ref.watch(selectedStatsDayProvider);
-    final now = DateTime.now();
-    final daysInMonth =
-        DateTime(month.year, month.month + 1).difference(DateTime(month.year, month.month)).inDays;
-    final maxDay = (month.year == now.year && month.month == now.month)
-        ? now.day
-        : daysInMonth;
-
-    return SizedBox(
-      height: 36,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: maxDay,
-        itemBuilder: (ctx, i) {
-          final d = i + 1;
-          final isSel = d == selected;
-          return Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: ChoiceChip(
-              label: Text('$d'),
-              selected: isSel,
-              onSelected: (_) =>
-                  ref.read(selectedStatsDayProvider.notifier).state = d,
-              selectedColor: colors.activeBg,
-              labelStyle: TextStyle(
-                  fontSize: 12,
-                  color: isSel ? colors.primary : colors.textMuted),
-              side: BorderSide(
-                  color: isSel ? colors.primary : colors.border),
-              showCheckmark: false,
-              visualDensity: VisualDensity.compact,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}

@@ -31,27 +31,25 @@ final dailyExpenseProvider = StreamProvider<Map<int, double>>((ref) {
   return db.accountsDao.watchDailyExpense(month.year, month.month);
 });
 
-/// 统计页饼图当前查看的日期（默认今天，限当月）。
-final selectedStatsDayProvider = StateProvider<int>((ref) {
-  final n = ref.watch(selectedMonthProvider);
-  final now = DateTime.now();
-  return (n.year == now.year && n.month == now.month) ? now.day : 1;
-});
+/// 饼图查看的日期：null = 整月；非空 = 柱状图选中的那天。
+final selectedStatsDayProvider = StateProvider<int?>((ref) => null);
 
-/// 指定日期的分类占比流（饼图），在 Dart 侧聚合。
+/// 分类占比流：跟随选中日（null 为整月聚合）。
 final categoryTotalsProvider =
     StreamProvider<List<(String, double)>>((ref) {
   final accounts = ref.watch(accountsStreamProvider).value ?? const [];
   final month = ref.watch(selectedMonthProvider);
   final day = ref.watch(selectedStatsDayProvider);
-  final start =
-      DateTime(month.year, month.month, day).millisecondsSinceEpoch;
-  final end = DateTime(month.year, month.month, day + 1).millisecondsSinceEpoch;
+  Iterable<AccountRow> scope = accounts.where((a) => a.type == 'expense');
+  if (day != null) {
+    final start =
+        DateTime(month.year, month.month, day).millisecondsSinceEpoch;
+    final end =
+        DateTime(month.year, month.month, day + 1).millisecondsSinceEpoch;
+    scope = scope.where((a) => a.occurredAt >= start && a.occurredAt < end);
+  }
   final map = <String, double>{};
-  for (final a in accounts.where((a) =>
-      a.type == 'expense' &&
-      a.occurredAt >= start &&
-      a.occurredAt < end)) {
+  for (final a in scope) {
     map[a.category] = (map[a.category] ?? 0) + a.amount;
   }
   final list = map.entries.toList()
