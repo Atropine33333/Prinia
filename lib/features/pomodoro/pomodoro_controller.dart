@@ -242,14 +242,15 @@ class PomodoroController extends Notifier<PomodoroState>
       );
       _startTicker();
     } else {
-      // 休息完成 → 回到空闲
+      // 休息完成 → 自动开始下一轮专注（循环计时）
       _celebrate();
-      _startedAt = null;
-      state = PomodoroState(
-        workMinutes: state.workMinutes,
-        restMinutes: state.restMinutes,
+      _startedAt = DateTime.now();
+      state = state.copyWith(
+        phase: PomodoroPhase.focusing,
         remainingSeconds: state.workMinutes * 60,
+        comebackNotice: false,
       );
+      _startTicker();
     }
   }
 
