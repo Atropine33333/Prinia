@@ -49,7 +49,7 @@ class CoursesDao extends DatabaseAccessor<AppDatabase> with _$CoursesDaoMixin {
           ..where((t) => t.isDeleted.equals(false))
           ..orderBy([
             (u) => OrderingTerm.asc(u.weekday),
-            (u) => OrderingTerm.asc(u.startSlot),
+            (u) => OrderingTerm.asc(u.startHour),
           ]))
         .watch();
   }

@@ -70,5 +70,5 @@ List<CourseRow> coursesForDay(List<CourseRow> all, int week, int weekday) {
           week >= c.startWeek &&
           week <= c.endWeek)
       .toList()
-    ..sort((a, b) => a.startSlot.compareTo(b.startSlot));
+    ..sort((a, b) => a.startHour.compareTo(b.startHour));
 }

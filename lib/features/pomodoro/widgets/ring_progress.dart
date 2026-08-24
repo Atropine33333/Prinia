@@ -10,12 +10,14 @@ class RingProgress extends StatelessWidget {
   final double fraction; // 已流逝 0~1
   final bool breathing;
   final Widget child;
+  final Color? progressColorOverride;
 
   const RingProgress({
     super.key,
     required this.fraction,
     required this.breathing,
     required this.child,
+    this.progressColorOverride,
   });
 
   @override
@@ -30,7 +32,7 @@ class RingProgress extends StatelessWidget {
           painter: _RingPainter(
             fraction: anim,
             trackColor: colors.border,
-            progressColor: colors.primary,
+            progressColor: progressColorOverride ?? colors.primary,
             glowColor: colors.primary.withValues(alpha: 0.25),
             breathing: breathing,
           ),

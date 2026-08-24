@@ -178,7 +178,9 @@ class _SimpleColorPicker extends StatefulWidget {
 class _SimpleColorPickerState extends State<_SimpleColorPicker> {
   late HSVColor _hsv;
 
-  _SimpleColorPickerState() {
+  @override
+  void initState() {
+    super.initState();
     final h = HSLColor.fromColor(widget.initial);
     _hsv = HSVColor.fromAHSV(1, h.hue, h.saturation, h.lightness);
   }
