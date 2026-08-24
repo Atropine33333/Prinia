@@ -297,8 +297,10 @@ class _StatsViewState extends ConsumerState<_StatsView> {
                   data: (m) => ExpenseBarChart(
                     data: m,
                     selectedDay: _barSelectedDay,
-                    onDayChanged: (d) =>
-                        setState(() => _barSelectedDay = d),
+                    onDayChanged: (d) => setState(() {
+                      _barSelectedDay = d;
+                      ref.read(selectedStatsDayProvider.notifier).state = d;
+                    }),
                   ),
                 ),
               ],
