@@ -34,7 +34,8 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase> with _$FocusSession
     final query = selectOnly(focusSessions)
       ..addColumns([focusSessions.durationSeconds.sum()])
       ..where(focusSessions.startTime.isBiggerOrEqualValue(start))
-      ..where(focusSessions.isDeleted.equals(false));
+      ..where(focusSessions.isDeleted.equals(false))
+      ..where(focusSessions.status.equals('completed'));
     return query.watchSingleOrNull().map(
           (row) => row?.read(focusSessions.durationSeconds.sum()) ?? 0,
         );

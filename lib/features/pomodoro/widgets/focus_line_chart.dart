@@ -20,7 +20,7 @@ class FocusLineChart extends StatelessWidget {
         painter: _LinePainter(
           data: data,
           lineColor: colors.primary,
-          fillColor: colors.primary.withValues(alpha: 0.12),
+          fillColor: colors.primary.withValues(alpha: 0.06),
           dotColor: colors.primary,
           labelColor: colors.textMuted,
           gridColor: colors.border,
@@ -52,7 +52,7 @@ class _LinePainter extends CustomPainter {
     if (data.length < 2) return;
     final chartH = size.height - 20; // 底部标签
     final maxV = math.max(
-      10.0,
+      25.0,
       data.fold<double>(0, (m, d) => math.max(m, d.minutes)),
     );
     final stepX = size.width / (data.length - 1);
@@ -71,19 +71,13 @@ class _LinePainter extends CustomPainter {
       canvas.drawLine(Offset(8, y), Offset(size.width - 8, y), grid);
     }
 
-    // 填充
+    // 折线
     final path = Path()..moveTo(pt(0).dx, pt(0).dy);
     for (var i = 1; i < data.length; i++) {
       path.lineTo(pt(i).dx, pt(i).dy);
     }
-    final fill = Path.from(path)
-      ..lineTo(size.width, chartH)
-      ..lineTo(0, chartH)
-      ..close();
-    canvas.drawPath(fill, Paint()..color = fillColor);
-
-    // 折线
     final line = Paint()
+      ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
