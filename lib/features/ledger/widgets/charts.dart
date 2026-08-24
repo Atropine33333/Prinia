@@ -129,9 +129,8 @@ class _BarPainter extends CustomPainter {
       final isSelected = selectedDay == d;
       // 超顶满格：恒显数字；选中：显示金额
       if ((capped || isSelected) && v > 0) {
-        final text = capped
-            ? '${v.toStringAsFixed(v % 1 == 0 ? 0 : 1)}'
-            : '¥${v.toStringAsFixed(v % 1 == 0 ? 0 : 1)}';
+        final numText = v.toStringAsFixed(v % 1 == 0 ? 0 : 1);
+        final text = capped ? numText : '¥$numText';
         tp.text = TextSpan(
           text: text,
           style: TextStyle(
@@ -150,7 +149,7 @@ class _BarPainter extends CustomPainter {
     // ── 日期标签 ──
     for (final d in [1, 5, 10, 15, 20, 25, days]) {
       tp.text = TextSpan(
-        text: '$d',
+        text: d.toString(),
         style: TextStyle(fontSize: 9, color: labelColor),
       );
       tp.layout();
