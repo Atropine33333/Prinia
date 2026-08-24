@@ -206,6 +206,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _SectionTitle('课表'),
           ListTile(
             contentPadding: EdgeInsets.zero,
+            title: Text('课程名字号',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            subtitle: Slider(
+              value: ref.watch(timetableFontProvider),
+              min: 10,
+              max: 22,
+              divisions: 12,
+              label: ref.watch(timetableFontProvider).toStringAsFixed(0),
+              activeColor: colors.primary,
+              onChanged: (v) =>
+                  ref.read(timetableFontProvider.notifier).set(v),
+            ),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
             title: Text('学期开始日期（第 1 周周一）',
                 style: TextStyle(color: colors.text, fontSize: 15)),
             subtitle: Text(

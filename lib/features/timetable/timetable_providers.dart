@@ -72,3 +72,32 @@ List<CourseRow> coursesForDay(List<CourseRow> all, int week, int weekday) {
       .toList()
     ..sort((a, b) => a.startHour.compareTo(b.startHour));
 }
+
+/// 课表课程名字号（设置页可调）。
+final timetableFontProvider =
+    NotifierProvider<TimetableFontController, double>(
+        TimetableFontController.new);
+
+class TimetableFontController extends Notifier<double> {
+  static const _key = 'timetable_font_size';
+
+  @override
+  double build() {
+    Future.microtask(_load);
+    return 14;
+  }
+
+  Future<void> _load() async {
+    final sp = await SharedPreferences.getInstance();
+    final v = sp.getDouble(_key);
+    if (v != null && v >= 10 && v <= 22) {
+      state = v;
+    }
+  }
+
+  Future<void> set(double v) async {
+    state = v.clamp(10, 22);
+    final sp = await SharedPreferences.getInstance();
+    await sp.setDouble(_key, state);
+  }
+}
