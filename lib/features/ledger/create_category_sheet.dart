@@ -9,24 +9,26 @@ import '../../core/icons/app_icon_view.dart';
 import '../../core/theme/app_colors.dart';
 import 'icon_picker_page.dart';
 
-/// 创建自定义标签：输入名称 + 选图标（默认猫猫头）。
+/// 创建/修改自定义标签：输入名称 + 选图标（默认猫猫头）。
 ///
-/// 保存成功后弹层关闭；[type] 为 'expense' 或 'income'。
+/// [existing] 非空时为编辑模式（标题变「修改标签」，多一个删除按钮）。
 Future<void> showCreateCategorySheet(
   BuildContext context,
   WidgetRef ref,
-  String type,
-) {
+  String type, {
+  CustomCategoryRow? existing,
+}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _CreateCategorySheet(type: type),
+    builder: (_) => _CreateCategorySheet(type: type, existing: existing),
   );
 }
 
 class _CreateCategorySheet extends ConsumerStatefulWidget {
   final String type;
-  const _CreateCategorySheet({required this.type});
+  final CustomCategoryRow? existing;
+  const _CreateCategorySheet({required this.type, this.existing});
 
   @override
   ConsumerState<_CreateCategorySheet> createState() =>
@@ -35,9 +37,18 @@ class _CreateCategorySheet extends ConsumerStatefulWidget {
 
 class _CreateCategorySheetState extends ConsumerState<_CreateCategorySheet> {
   final _nameCtrl = TextEditingController();
-  int _iconCode = kCatCodePoint;
+  late int _iconCode;
 
   bool get _isIncome => widget.type == 'income';
+
+  bool get _isEdit => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _iconCode = widget.existing?.iconCode ?? kCatCodePoint;
+    _nameCtrl.text = widget.existing?.name ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,10 +64,31 @@ class _CreateCategorySheetState extends ConsumerState<_CreateCategorySheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _isIncome ? '新建收入标签' : '新建支出标签',
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600, color: colors.text),
+          Row(
+            children: [
+              Text(
+                _isEdit
+                    ? '修改标签'
+                    : (_isIncome ? '新建收入标签' : '新建支出标签'),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colors.text),
+              ),
+              const Spacer(),
+              if (_isEdit)
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: colors.error),
+                  tooltip: '删除标签',
+                  onPressed: () async {
+                    await ref
+                        .read(databaseProvider)
+                        .customCategoriesDao
+                        .softDelete(widget.existing!.id);
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
@@ -129,7 +161,8 @@ class _CreateCategorySheetState extends ConsumerState<_CreateCategorySheet> {
       return;
     }
     final dao = ref.read(databaseProvider).customCategoriesDao;
-    if (await dao.nameExists(name, widget.type)) {
+    if (name != widget.existing?.name &&
+        await dao.nameExists(name, widget.type)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('「$name」已存在')),
@@ -137,13 +170,23 @@ class _CreateCategorySheetState extends ConsumerState<_CreateCategorySheet> {
       }
       return;
     }
-    await dao.insertCategory(
-      CustomCategoriesCompanion.insert(
-        name: name,
-        iconCode: Value(_iconCode),
-        type: widget.type,
-      ),
-    );
+    if (_isEdit) {
+      await dao.updateCategory(
+        widget.existing!.id,
+        CustomCategoriesCompanion(
+          name: Value(name),
+          iconCode: Value(_iconCode),
+        ),
+      );
+    } else {
+      await dao.insertCategory(
+        CustomCategoriesCompanion.insert(
+          name: name,
+          iconCode: Value(_iconCode),
+          type: widget.type,
+        ),
+      );
+    }
     if (mounted) Navigator.of(context).pop();
   }
 

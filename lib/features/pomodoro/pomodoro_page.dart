@@ -72,14 +72,20 @@ class _TimerView extends ConsumerWidget {
                     label: '专注',
                     minutes: state.workMinutes,
                     colors: colors,
-                    onChanged: controller.setWorkMinutes,
+                    onDown: () => controller
+                        .setWorkMinutes(PomodoroController.stepDown(state.workMinutes)),
+                    onUp: () => controller
+                        .setWorkMinutes(PomodoroController.stepUp(state.workMinutes)),
                   ),
                   const SizedBox(width: 16),
                   _DurationStepper(
                     label: '休息',
                     minutes: state.restMinutes,
                     colors: colors,
-                    onChanged: controller.setRestMinutes,
+                    onDown: () => controller
+                        .setRestMinutes(PomodoroController.stepDown(state.restMinutes)),
+                    onUp: () => controller
+                        .setRestMinutes(PomodoroController.stepUp(state.restMinutes)),
                   ),
                 ],
               )
@@ -190,13 +196,15 @@ class _DurationStepper extends StatelessWidget {
   final String label;
   final int minutes;
   final AppColors colors;
-  final ValueChanged<int> onChanged;
+  final VoidCallback onDown;
+  final VoidCallback onUp;
 
   const _DurationStepper({
     required this.label,
     required this.minutes,
     required this.colors,
-    required this.onChanged,
+    required this.onDown,
+    required this.onUp,
   });
 
   @override
@@ -215,7 +223,7 @@ class _DurationStepper extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: colors.textMuted)),
           IconButton(
             visualDensity: VisualDensity.compact,
-            onPressed: minutes > 1 ? () => onChanged(minutes - 5 < 1 ? 1 : minutes - 5) : null,
+            onPressed: minutes > 1 ? onDown : null,
             icon: const Icon(Icons.remove, size: 18),
             color: colors.text,
           ),
@@ -226,7 +234,7 @@ class _DurationStepper extends StatelessWidget {
                   color: colors.text)),
           IconButton(
             visualDensity: VisualDensity.compact,
-            onPressed: minutes < 120 ? () => onChanged(minutes + 5) : null,
+            onPressed: minutes < 120 ? onUp : null,
             icon: const Icon(Icons.add, size: 18),
             color: colors.text,
           ),

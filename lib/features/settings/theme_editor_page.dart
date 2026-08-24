@@ -205,24 +205,23 @@ class _SimpleColorPickerState extends State<_SimpleColorPicker> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // SV 面板：x=饱和度，y=明度
-            GestureDetector(
-              onPanDown: (d) => _pickSV(d.localPosition),
-              onPanUpdate: (d) => _pickSV(d.localPosition),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 150,
-                  child: CustomPaint(
-                    painter: _SvPanelPainter(hue: _hsv.hue),
-                    child: LayoutBuilder(builder: (ctx, box) {
-                      return Stack(
-                        children: [
-                          Positioned(
-                            left: _hsv.saturation * box.maxWidth - 10,
-                            top: (1 - _hsv.value) * box.maxHeight - 10,
-                            child: GestureDetector(
-                              onTap: () {},
+            Builder(builder: (panelCtx) {
+              return GestureDetector(
+                onPanDown: (d) => _pickSV(d.localPosition, panelCtx),
+                onPanUpdate: (d) => _pickSV(d.localPosition, panelCtx),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 150,
+                    child: CustomPaint(
+                      painter: _SvPanelPainter(hue: _hsv.hue),
+                      child: LayoutBuilder(builder: (ctx, box) {
+                        return Stack(
+                          children: [
+                            Positioned(
+                              left: _hsv.saturation * box.maxWidth - 10,
+                              top: (1 - _hsv.value) * box.maxHeight - 10,
                               child: Container(
                                 width: 20,
                                 height: 20,
@@ -238,62 +237,64 @@ class _SimpleColorPickerState extends State<_SimpleColorPicker> {
                                 ),
                               ),
                             ),
+                          ],
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 14),
+            // 色相条
+            Builder(builder: (hueCtx) {
+              return GestureDetector(
+                onPanDown: (d) => _pickHue(d.localPosition.dx, hueCtx),
+                onPanUpdate: (d) => _pickHue(d.localPosition.dx, hueCtx),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SizedBox(
+                    height: 22,
+                    width: double.infinity,
+                    child: LayoutBuilder(builder: (ctx, box) {
+                      return Stack(
+                        children: [
+                          const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(colors: [
+                                Color(0xFFFF0000), Color(0xFFFFFF00),
+                                Color(0xFF00FF00), Color(0xFF00FFFF),
+                                Color(0xFF0000FF), Color(0xFFFF00FF),
+                                Color(0xFFFF0000),
+                              ]),
+                            ),
+                            child: SizedBox.expand(),
+                          ),
+                          Positioned(
+                            left: (_hsv.hue / 360) * box.maxWidth - 8,
+                            top: 1,
+                            child: Container(
+                              width: 16,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: current,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                    color: Colors.white, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(
+                                      color: Colors.black26, blurRadius: 3),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       );
                     }),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            // 色相条
-            GestureDetector(
-              onPanDown: (d) => _pickHue(d.localPosition.dx, ctx: context),
-              onPanUpdate: (d) => _pickHue(d.localPosition.dx, ctx: context),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: SizedBox(
-                  height: 22,
-                  width: double.infinity,
-                  child: LayoutBuilder(builder: (ctx, box) {
-                    return Stack(
-                      children: [
-                        const DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [
-                              Color(0xFFFF0000), Color(0xFFFFFF00),
-                              Color(0xFF00FF00), Color(0xFF00FFFF),
-                              Color(0xFF0000FF), Color(0xFFFF00FF),
-                              Color(0xFFFF0000),
-                            ]),
-                          ),
-                          child: SizedBox.expand(),
-                        ),
-                        Positioned(
-                          left: (_hsv.hue / 360) * box.maxWidth - 8,
-                          top: 1,
-                          child: Container(
-                            width: 16,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: current,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                  color: Colors.white, width: 2),
-                              boxShadow: const [
-                                BoxShadow(
-                                    color: Colors.black26, blurRadius: 3),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
-                ),
-              ),
-            ),
+              );
+            }),
             const SizedBox(height: 14),
             // hex 输入 + 预览
             Row(
@@ -333,21 +334,19 @@ class _SimpleColorPickerState extends State<_SimpleColorPicker> {
     );
   }
 
-  void _pickSV(Offset local) {
-    // 面板实际宽度从渲染对象取
-    final box = context.findRenderObject() as RenderBox?;
+  void _pickSV(Offset local, BuildContext panelCtx) {
+    final box = panelCtx.findRenderObject() as RenderBox?;
     if (box == null) return;
-    final w = box.size.width - 48; // 减去 dialog padding 估算
-    final sRatio = (local.dx / (w <= 0 ? 1 : w)).clamp(0.0, 1.0);
-    final vRatio = (local.dy / 150).clamp(0.0, 1.0);
+    final sRatio = (local.dx / box.size.width).clamp(0.0, 1.0);
+    final vRatio = (local.dy / box.size.height).clamp(0.0, 1.0);
     setState(() {
       _hsv = _hsv.withSaturation(sRatio).withValue(1 - vRatio);
     });
     _syncHex();
   }
 
-  void _pickHue(double dx, {required BuildContext ctx}) {
-    final box = ctx.findRenderObject() as RenderBox?;
+  void _pickHue(double dx, BuildContext hueCtx) {
+    final box = hueCtx.findRenderObject() as RenderBox?;
     if (box == null) return;
     final ratio = (dx / box.size.width).clamp(0.0, 0.9999);
     setState(() => _hsv = _hsv.withHue(ratio * 360));

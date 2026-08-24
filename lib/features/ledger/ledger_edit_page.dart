@@ -148,10 +148,22 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
               runSpacing: 8,
               children: [
                 for (final o in options)
-                  _CategoryChip(
-                    option: o,
-                    selected: _category == o.name,
-                    onTap: () => setState(() => _category = o.name),
+                  GestureDetector(
+                    onLongPress: o.isCustom
+                        ? () => showCreateCategorySheet(
+                              context,
+                              ref,
+                              _type,
+                              existing: customs
+                                  ?.where((c) => c.name == o.name)
+                                  .firstOrNull,
+                            )
+                        : null,
+                    child: _CategoryChip(
+                      option: o,
+                      selected: _category == o.name,
+                      onTap: () => setState(() => _category = o.name),
+                    ),
                   ),
                 _AddCategoryChip(
                   onTap: () => showCreateCategorySheet(context, ref, _type),

@@ -173,10 +173,13 @@ class _AccountTile extends ConsumerWidget {
     // 自定义标签优先按码点渲染
     final customs = ref.watch(customCategoriesProvider(row.type)).value;
     final custom = customs?.where((c) => c.name == row.category).firstOrNull;
+    final incomeBuiltin = incomeDefaultIcons[row.category];
     final leading = custom != null
         ? AppIconView(
             codePoint: custom.iconCode, color: colors.primary, size: 22)
-        : categoryIcon(row.category, colors);
+        : incomeBuiltin != null
+            ? Icon(incomeBuiltin, size: 22, color: colors.primary)
+            : categoryIcon(row.category, colors);
 
     return ListTile(
       leading: leading,
