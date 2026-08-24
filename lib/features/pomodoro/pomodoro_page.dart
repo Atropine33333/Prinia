@@ -165,18 +165,7 @@ class _TimerView extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // 调试入口
-            IconButton(
-              tooltip: '调试：跳到剩 3 秒',
-              onPressed: state.isActive ? controller.debugSkipToEnd : null,
-              icon: Icon(Icons.bug_report,
-                  size: 20,
-                  color: state.isActive
-                      ? colors.textMuted
-                      : colors.borderStrong),
-            ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 16),
             Text(
               switch (today.value) {
                 null => '',
