@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/db/daos/focus_sessions_dao.dart';
+import '../../app/app_shell.dart';
 import '../../core/theme/app_colors.dart';
 import 'pomodoro_controller.dart';
 import 'pomodoro_providers.dart';
@@ -35,6 +36,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                 ? Icons.timer_outlined
                 : Icons.insights_outlined),
           ),
+          const SettingsAction(),
         ],
       ),
       body: _showStats ? const _StatsView() : const _TimerView(),
