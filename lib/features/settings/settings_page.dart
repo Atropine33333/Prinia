@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/presets.dart';
@@ -242,9 +243,48 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               }
             },
           ),
+          const SizedBox(height: 24),
+          // ── 危险区 ──
+          _SectionTitle('数据'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('清除本地数据',
+                style: TextStyle(color: colors.error, fontSize: 15)),
+            subtitle: Text('清空账目/专注记录/课程/自定义标签，不可恢复',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+            onTap: () => _confirmClearData(colors),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmClearData(AppColors colors) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('清除全部本地数据？'),
+        content: Text('账目、专注记录、课程、自定义标签都将被清空，且不可恢复。',
+            style: TextStyle(color: colors.textMuted, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('取消', style: TextStyle(color: colors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('清除', style: TextStyle(color: colors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await ref.read(databaseProvider).clearAllData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已清除')),
+      );
+    }
   }
 }
 

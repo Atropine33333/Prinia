@@ -22,6 +22,15 @@ class AppDatabase extends _$AppDatabase {
   /// 当前设备标识（未来多端同步时区分来源）。
   String get deviceId => NoOpSyncService.deviceId;
 
+  /// 清空全部业务数据（调试/重置用）。
+  Future<void> clearAllData() async {
+    await delete(accounts).go();
+    await delete(focusSessions).go();
+    await delete(courses).go();
+    await delete(customCategories).go();
+    await customStatement('VACUUM');
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
