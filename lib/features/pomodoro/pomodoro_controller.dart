@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
@@ -79,8 +80,31 @@ class PomodoroController extends Notifier<PomodoroState>
   PomodoroState build() {
     ref.onDispose(_teardown);
     _lifecycle ??= _makeLifecycleListener();
+    Future.microtask(_loadDurations);
     return const PomodoroState();
   }
+
+  Future<void> _loadDurations() async {
+    final sp = await SharedPreferences.getInstance();
+    final w = sp.getInt('pomodoro_work');
+    final r = sp.getInt('pomodoro_rest');
+    if (w == null && r == null) return;
+    state = state.copyWith(
+      workMinutes: (w != null && w >= 1) ? w : state.workMinutes,
+      restMinutes: (r != null && r >= 1) ? r : state.restMinutes,
+      remainingSeconds: ((w != null && w >= 1) ? w : state.workMinutes) * 60,
+    );
+  }
+
+  Future<void> _saveDurations() async {
+    final sp = await SharedPreferences.getInstance();
+    await sp.setInt('pomodoro_work', state.workMinutes);
+    await sp.setInt('pomodoro_rest', state.restMinutes);
+  }
+
+  /// 步进：5 的倍数之间步进 5；1 与 5 互通（5→1→5→10…）。
+  static int stepDown(int m) => m <= 5 ? 1 : m - 5;
+  static int stepUp(int m) => m < 5 ? 5 : m + 5;
 
   AppLifecycleListener _makeLifecycleListener() {
     return AppLifecycleListener(
@@ -104,11 +128,13 @@ class PomodoroController extends Notifier<PomodoroState>
   void setWorkMinutes(int m) {
     if (state.phase != PomodoroPhase.idle || m < 1) return;
     state = state.copyWith(workMinutes: m, remainingSeconds: m * 60);
+    unawaited(_saveDurations());
   }
 
   void setRestMinutes(int m) {
     if (state.phase != PomodoroPhase.idle || m < 1) return;
     state = state.copyWith(restMinutes: m);
+    unawaited(_saveDurations());
   }
 
   // ── 控制 ───────────────────────────────────────────────────

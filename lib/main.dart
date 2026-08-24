@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,7 @@ final shellKey = GlobalKey<AppShellState>();
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   unawaited(_enableHighRefreshRate());
+  unawaited(initializeDateFormatting('zh_CN'));
   // 本地通知初始化（饭点提醒 / 课程提醒）
   unawaited(NotificationService.init());
   NotificationService.registerTapHandler(_handleNotificationTap);

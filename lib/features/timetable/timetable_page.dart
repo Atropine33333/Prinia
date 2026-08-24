@@ -10,11 +10,11 @@ import '../../core/theme/app_colors.dart';
 import 'course_edit_page.dart';
 import 'timetable_providers.dart';
 
-const _hourHeight = 64.0;
-const _dayHeaderH = 34.0;
-const _slotColW = 44.0;
+const double hourHeight = 64.0;
+const double _dayHeaderH = 34.0;
+const double _slotColW = 44.0;
 
-/// 课表页：24 小时时间轴周视图，支持长按拖拽移动课程。
+/// 课表页：24 小时时间轴周视图，长按课程弹出快速移动面板。
 class TimetablePage extends ConsumerStatefulWidget {
   const TimetablePage({super.key});
 
@@ -24,19 +24,27 @@ class TimetablePage extends ConsumerStatefulWidget {
 
 class _TimetablePageState extends ConsumerState<TimetablePage> {
   final _scrollCtrl = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollCtrl.hasClients) _scrollCtrl.jumpTo(8 * _hourHeight);
-    });
-  }
+  bool _scrolledToInit = false;
 
   @override
   void dispose() {
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  void _ensureInitialScroll(List<CourseRow> all) {
+    if (_scrolledToInit) return;
+    _scrolledToInit = true;
+    final active = all.where((c) => !c.isDeleted).toList();
+    var hour = 8;
+    for (final c in active) {
+      if (c.startHour < hour) hour = c.startHour;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.jumpTo(hour * hourHeight);
+      }
+    });
   }
 
   @override
@@ -45,6 +53,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     final start = ref.watch(semesterStartProvider);
     final week = ref.watch(displayedWeekProvider);
     final courses = ref.watch(coursesProvider);
+    _ensureInitialScroll(courses.value ?? const []);
 
     final monday = start.add(Duration(days: (week - 1) * 7));
     final today = DateTime.now();
@@ -79,9 +88,8 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
                 icon: const Icon(Icons.chevron_left),
                 color: colors.textMuted,
                 onPressed: week > 1
-                    ? () =>
-                        ref.read(displayedWeekProvider.notifier).state =
-                            week - 1
+                    ? () => ref.read(displayedWeekProvider.notifier).state =
+                        week - 1
                     : null,
               ),
               Text(
@@ -92,8 +100,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
                 icon: const Icon(Icons.chevron_right),
                 color: colors.textMuted,
                 onPressed: () =>
-                    ref.read(displayedWeekProvider.notifier).state =
-                        week + 1,
+                    ref.read(displayedWeekProvider.notifier).state = week + 1,
               ),
             ],
           ),
@@ -136,13 +143,13 @@ class _Grid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final now = DateTime.now();
-    final nowOffset = (now.hour + now.minute / 60) * _hourHeight;
+    final nowOffset = (now.hour + now.minute / 60) * hourHeight;
     final fontSize = ref.watch(timetableFontProvider);
 
     return SingleChildScrollView(
       controller: scrollCtrl,
       child: SizedBox(
-        height: _dayHeaderH + 24 * _hourHeight,
+        height: _dayHeaderH + 24 * hourHeight,
         child: Column(
           children: [
             SizedBox(
@@ -179,7 +186,7 @@ class _Grid extends ConsumerWidget {
                       children: [
                         for (var h = 0; h < 24; h++)
                           SizedBox(
-                            height: _hourHeight,
+                            height: hourHeight,
                             child: Align(
                               alignment: Alignment.topCenter,
                               child: Transform.translate(
@@ -187,8 +194,7 @@ class _Grid extends ConsumerWidget {
                                 child: Text(
                                   '${h.toString().padLeft(2, '0')}:00',
                                   style: TextStyle(
-                                      fontSize: 11,
-                                      color: colors.textMuted),
+                                      fontSize: 11, color: colors.textMuted),
                                 ),
                               ),
                             ),
@@ -198,112 +204,76 @@ class _Grid extends ConsumerWidget {
                   ),
                   for (var d = 1; d <= 7; d++)
                     Expanded(
-                      child: DragTarget<CourseRow>(
-                        onWillAcceptWithDetails: (_) => true,
-                        onAcceptWithDetails: (details) {
-                          final box =
-                              context.findRenderObject() as RenderBox;
-                          final local = box.globalToLocal(details.offset);
-                          var hour =
-                              (local.dy / _hourHeight).round().clamp(0, 23);
-                          final c = details.data;
-                          hour = hour.clamp(0, 24 - c.durationHours);
-                          ref
-                              .read(databaseProvider)
-                              .coursesDao
-                              .updateCourse(
-                                c.id,
-                                CoursesCompanion(
-                                  weekday: Value(d),
-                                  startHour: Value(hour),
-                                ),
-                              );
-                        },
-                        builder: (ctx, _, _) => Container(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              left: BorderSide(
-                                  color: colors.border, width: 0.5),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            left:
+                                BorderSide(color: colors.border, width: 0.5),
+                          ),
+                          color: isCurrentWeek && d == todayWeekday
+                              ? colors.primary.withValues(alpha: 0.04)
+                              : null,
+                        ),
+                        child: Stack(
+                          children: [
+                            Column(
+                              children: [
+                                for (var h = 0; h < 24; h++)
+                                  SizedBox(
+                                    height: hourHeight,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () =>
+                                          Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => CourseEditPage(
+                                            initialWeekday: d,
+                                            initialHour: h,
+                                          ),
+                                        ),
+                                      ),
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            top: BorderSide(
+                                                color: colors.border,
+                                                width: 0.5),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                            color: isCurrentWeek && d == todayWeekday
-                                ? colors.primary.withValues(alpha: 0.04)
-                                : null,
-                          ),
-                          child: Stack(
-                            children: [
-                              Column(
-                                children: [
-                                  for (var h = 0; h < 24; h++)
-                                    SizedBox(
-                                      height: _hourHeight,
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () =>
-                                            Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => CourseEditPage(
-                                              initialWeekday: d,
-                                              initialHour: h,
-                                            ),
-                                          ),
-                                        ),
-                                        child: DecoratedBox(
-                                          decoration: BoxDecoration(
-                                            border: Border(
-                                              top: BorderSide(
-                                                  color: colors.border,
-                                                  width: 0.5),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
+                            if (isCurrentWeek && d == todayWeekday)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                top: nowOffset,
+                                child: Container(
+                                  height: 1.5,
+                                  color: colors.error.withValues(alpha: 0.7),
+                                ),
                               ),
-                              if (isCurrentWeek && d == todayWeekday)
+                            for (final c in all)
+                              if (c.weekday == d &&
+                                  !c.isDeleted &&
+                                  week >= c.startWeek &&
+                                  week <= c.endWeek)
                                 Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  top: nowOffset,
-                                  child: Container(
-                                    height: 1.5,
-                                    color:
-                                        colors.error.withValues(alpha: 0.7),
+                                  top: c.startHour * hourHeight + 1,
+                                  height:
+                                      c.durationHours * hourHeight - 2,
+                                  left: 1,
+                                  right: 1,
+                                  child: CourseCard(
+                                    course: c,
+                                    fontSize: fontSize,
+                                    onLongPress: () =>
+                                        showQuickEdit(context, ref, c, all),
                                   ),
                                 ),
-                              for (final c in all)
-                                if (c.weekday == d &&
-                                    !c.isDeleted &&
-                                    week >= c.startWeek &&
-                                    week <= c.endWeek)
-                                  Positioned(
-                                    top: c.startHour * _hourHeight + 1,
-                                    height: c.durationHours * _hourHeight - 2,
-                                    left: 1,
-                                    right: 1,
-                                    child: LongPressDraggable<CourseRow>(
-                                      data: c,
-                                      delay: const Duration(milliseconds: 160),
-                                      feedback: Material(
-                                        color: Colors.transparent,
-                                        child: _CourseCard(
-                                          course: c,
-                                          fontSize: fontSize,
-                                          dragging: true,
-                                        ),
-                                      ),
-                                      childWhenDragging: Opacity(
-                                          opacity: 0.3,
-                                          child: _CourseCard(
-                                              course: c, fontSize: fontSize)),
-                                      child: _CourseCard(
-                                        course: c,
-                                        fontSize: fontSize,
-                                      ),
-                                    ),
-                                  ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
                     ),
@@ -317,15 +287,201 @@ class _Grid extends ConsumerWidget {
   }
 }
 
-class _CourseCard extends StatelessWidget {
+/// 长按快速编辑：上下左右移动，冲突方向置灰，时长去详情改。
+void showQuickEdit(
+  BuildContext context,
+  WidgetRef ref,
+  CourseRow initial,
+  List<CourseRow> all,
+) {
+  final colors = Theme.of(context).extension<AppColors>()!;
+  final dao = ref.read(databaseProvider).coursesDao;
+  var cur = initial;
+
+  bool conflict(int weekday, int startHour) {
+    for (final o in all) {
+      if (o.id == cur.id || o.isDeleted || o.weekday != weekday) continue;
+      if (startHour < o.startHour + o.durationHours &&
+          o.startHour < startHour + cur.durationHours) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool can(int weekday, int startHour) =>
+      weekday >= 1 &&
+      weekday <= 7 &&
+      startHour >= 0 &&
+      startHour + cur.durationHours <= 24 &&
+      !conflict(weekday, startHour);
+
+  showModalBottomSheet(
+    context: context,
+    builder: (ctx) => SafeArea(
+      child: StatefulBuilder(
+        builder: (ctx, setSheet) {
+          Future<void> move(int weekday, int startHour) async {
+            await dao.updateCourse(
+              cur.id,
+              CoursesCompanion(
+                weekday: Value(weekday),
+                startHour: Value(startHour),
+              ),
+            );
+            setSheet(
+                () => cur = _copyWithTime(cur, weekday, startHour));
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${cur.name} · ${cur.startHour}:00 – ${cur.startHour + cur.durationHours}:00 · ${cur.durationHours} 小时',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: colors.text),
+                ),
+                const SizedBox(height: 6),
+                Text('调时长请进「完整编辑」',
+                    style: TextStyle(fontSize: 12, color: colors.textMuted)),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _QuickBtn(
+                      icon: Icons.arrow_upward,
+                      label: '上移',
+                      onTap: can(cur.weekday, cur.startHour - 1)
+                          ? () => move(cur.weekday, cur.startHour - 1)
+                          : null,
+                    ),
+                    _QuickBtn(
+                      icon: Icons.arrow_downward,
+                      label: '下移',
+                      onTap: can(cur.weekday, cur.startHour + 1)
+                          ? () => move(cur.weekday, cur.startHour + 1)
+                          : null,
+                    ),
+                    _QuickBtn(
+                      icon: Icons.arrow_back,
+                      label: '前一天',
+                      onTap: cur.weekday > 1 && can(cur.weekday - 1, cur.startHour)
+                          ? () => move(cur.weekday - 1, cur.startHour)
+                          : null,
+                    ),
+                    _QuickBtn(
+                      icon: Icons.arrow_forward,
+                      label: '后一天',
+                      onTap: cur.weekday < 7 && can(cur.weekday + 1, cur.startHour)
+                          ? () => move(cur.weekday + 1, cur.startHour)
+                          : null,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => CourseEditPage(existing: cur)),
+                      );
+                    },
+                    child:
+                        Text('完整编辑', style: TextStyle(color: colors.primary)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
+CourseRow _copyWithTime(CourseRow c, int weekday, int startHour) {
+  return CourseRow(
+    id: c.id,
+    updatedAt: c.updatedAt,
+    deviceId: c.deviceId,
+    isDeleted: c.isDeleted,
+    name: c.name,
+    teacher: c.teacher,
+    room: c.room,
+    weekday: weekday,
+    startWeek: c.startWeek,
+    endWeek: c.endWeek,
+    startHour: startHour,
+    durationHours: c.durationHours,
+    colorHex: c.colorHex,
+    remindersJson: c.remindersJson,
+  );
+}
+
+class _QuickBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  const _QuickBtn({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final enabled = onTap != null;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(
+              color: enabled
+                  ? colors.border
+                  : colors.border.withValues(alpha: 0.4)),
+          borderRadius: BorderRadius.circular(10),
+          color: colors.bg,
+        ),
+        child: Column(
+          children: [
+            Icon(icon,
+                size: 20,
+                color: enabled ? colors.primary : colors.borderStrong),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    color: enabled ? colors.text : colors.borderStrong)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CourseCard extends StatelessWidget {
   final CourseRow course;
   final double fontSize;
-  final bool dragging;
+  final VoidCallback? onLongPress;
 
-  const _CourseCard({
+  const CourseCard({
+    super.key,
     required this.course,
     required this.fontSize,
-    this.dragging = false,
+    this.onLongPress,
   });
 
   @override
@@ -338,71 +494,51 @@ class _CourseCard extends StatelessWidget {
         bg.computeLuminance() > 0.5 ? colors.text : Colors.white;
 
     return GestureDetector(
-      onTap: dragging
-          ? null
-          : () => Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => CourseEditPage(existing: course)),
-              ),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => CourseEditPage(existing: course)),
+      ),
+      onLongPress: onLongPress,
       child: Container(
         margin: const EdgeInsets.all(1),
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
         decoration: BoxDecoration(
           color: bg.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(7),
-          boxShadow: dragging
-              ? [BoxShadow(color: const Color(0x33000000), blurRadius: 10)]
-              : null,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 左：课程名（bold，自动换行）
-            Expanded(
-              child: Text(
-                course.name,
-                maxLines: 5,
-                overflow: TextOverflow.ellipsis,
+        child: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: course.name,
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: FontWeight.w700,
-                  height: 1.15,
+                  height: 1.2,
                   color: onColor,
                 ),
               ),
-            ),
-            const SizedBox(width: 4),
-            // 右：地点/老师 竖排（固定窄列）
-            SizedBox(
-              width: 44,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (course.room?.isNotEmpty == true)
-                    Text(
-                      '@${course.room}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: fontSize - 3,
-                          height: 1.2,
-                          color: onColor.withValues(alpha: 0.9)),
-                    ),
-                  if (course.teacher?.isNotEmpty == true)
-                    Text(
-                      course.teacher!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: fontSize - 3,
-                          height: 1.2,
-                          color: onColor.withValues(alpha: 0.75)),
-                    ),
-                ],
-              ),
-            ),
-          ],
+              if (course.room?.isNotEmpty == true)
+                TextSpan(
+                  text: ' @${course.room}',
+                  style: TextStyle(
+                    fontSize: fontSize - 3,
+                    height: 1.2,
+                    color: onColor.withValues(alpha: 0.85),
+                  ),
+                ),
+              if (course.teacher?.isNotEmpty == true)
+                TextSpan(
+                  text: ' ${course.teacher}',
+                  style: TextStyle(
+                    fontSize: fontSize - 3,
+                    height: 1.2,
+                    color: onColor.withValues(alpha: 0.7),
+                  ),
+                ),
+            ],
+          ),
+          maxLines: 6,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

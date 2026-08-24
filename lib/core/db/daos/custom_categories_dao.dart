@@ -25,6 +25,12 @@ class CustomCategoriesDao extends DatabaseAccessor<AppDatabase>
   Future<void> insertCategory(CustomCategoriesCompanion entry) =>
       into(customCategories).insert(entry);
 
+  Future<void> updateCategory(int id, CustomCategoriesCompanion entry) {
+    return (update(customCategories)..where((t) => t.id.equals(id))).write(
+      entry.copyWith(updatedAt: Value(DateTime.now().millisecondsSinceEpoch)),
+    );
+  }
+
   Future<bool> nameExists(String name, String type) async {
     final q = selectOnly(customCategories)
       ..addColumns([customCategories.id])
