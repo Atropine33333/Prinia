@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../features/ledger/ledger_page.dart';
 import '../features/pomodoro/pomodoro_page.dart';
-import 'placeholder_page.dart';
+import '../features/settings/settings_page.dart';
+import '../features/timetable/timetable_page.dart';
 
 /// 应用主外壳：手机底部导航 / 平板侧边导航。
 ///
@@ -12,12 +13,15 @@ class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  State<AppShell> createState() => AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class AppShellState extends State<AppShell> {
   int _index = 0;
   bool _railExtended = false;
+
+  /// 通知点击等外部入口切换标签（0=记账本）。
+  void switchTo(int index) => setState(() => _index = index);
 
   static const _destinations = [
     _Destination(
@@ -43,7 +47,7 @@ class _AppShellState extends State<AppShell> {
     final pages = [
       const LedgerPage(),
       const PomodoroPage(),
-      const PlaceholderPage(label: '课表'),
+      const TimetablePage(),
     ];
 
     return LayoutBuilder(
@@ -73,14 +77,11 @@ class _AppShellState extends State<AppShell> {
             children: [
               Column(
                 children: [
-                  // 收起/展开按钮
                   IconButton(
                     onPressed: () =>
                         setState(() => _railExtended = !_railExtended),
                     icon: Icon(
-                      _railExtended
-                          ? Icons.menu_open
-                          : Icons.menu,
+                      _railExtended ? Icons.menu_open : Icons.menu,
                       color: colors.textMuted,
                     ),
                     tooltip: _railExtended ? '收起' : '展开',
@@ -114,7 +115,6 @@ class _AppShellState extends State<AppShell> {
                   ),
                 ],
               ),
-              // 侧栏与内容区分隔线
               VerticalDivider(width: 1, color: colors.border),
               Expanded(
                 child: IndexedStack(index: _index, children: pages),
@@ -122,7 +122,23 @@ class _AppShellState extends State<AppShell> {
             ],
           ),
         );
-      },
+      }
+    );
+  }
+}
+
+/// 各页 AppBar 共用的设置入口。
+class SettingsAction extends StatelessWidget {
+  const SettingsAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: '设置',
+      icon: const Icon(Icons.settings_outlined),
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const SettingsPage()),
+      ),
     );
   }
 }

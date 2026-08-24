@@ -54,7 +54,7 @@ class CoursesDao extends DatabaseAccessor<AppDatabase> with _$CoursesDaoMixin {
         .watch();
   }
 
-  Future<void> insertCourse(CoursesCompanion entry) =>
+  Future<int> insertCourse(CoursesCompanion entry) =>
       into(courses).insert(entry);
 
   Future<void> updateCourse(int id, CoursesCompanion entry) {

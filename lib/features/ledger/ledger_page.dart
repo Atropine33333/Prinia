@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/db/daos/accounts_dao.dart';
 import '../../core/icons/app_icon_view.dart';
+import '../../app/app_shell.dart';
 import '../../core/theme/app_colors.dart';
 import 'ledger_categories_provider.dart';
 import 'ledger_edit_page.dart';
@@ -38,6 +39,7 @@ class _LedgerPageState extends ConsumerState<LedgerPage> {
                 ? Icons.receipt_long_outlined
                 : Icons.insights_outlined),
           ),
+          const SettingsAction(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
