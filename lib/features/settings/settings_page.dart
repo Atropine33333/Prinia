@@ -246,6 +246,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             },
           ),
           const SizedBox(height: 24),
+          // ── 关于 ──
+          _SectionTitle('关于'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('版本',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            subtitle: Text('1.0.0',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('开源许可证',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            subtitle: Text('Apache License 2.0 及各依赖组件许可',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+            trailing: Icon(Icons.chevron_right, color: colors.textMuted),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => const OpenSourceLicensesPage()),
+            ),
+          ),
+          const SizedBox(height: 24),
           // ── 危险区 ──
           _SectionTitle('数据'),
           ListTile(
@@ -357,6 +379,23 @@ class _ThemeTile extends StatelessWidget {
       trailing: selected
           ? Icon(Icons.check, color: c.primary, size: 20)
           : null,
+    );
+  }
+}
+
+/// 开源许可证页（Flutter 内置 LicensePage，自动汇总全部依赖许可）。
+class OpenSourceLicensesPage extends StatelessWidget {
+  const OpenSourceLicensesPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('开源许可证')),
+      body: const LicensePage(
+        applicationName: 'Prinia',
+        applicationVersion: '1.0.0',
+        applicationLegalese: 'Prinia · 记账、番茄钟与课表的本地效率工具',
+      ),
     );
   }
 }
