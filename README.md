@@ -1,6 +1,8 @@
 # Prinia
 
-A local-first productivity app for students. Prinia combines an expense tracker, a Pomodoro timer, and a class timetable in a single offline Android application.
+[简体中文](README_zh.md)
+
+A local-first productivity app for students. Prinia combines an expense tracker, a Pomodoro timer, and a class timetable in a single offline Android application, with optional Bluetooth device-to-device synchronization.
 
 ## Features
 
@@ -12,7 +14,7 @@ A local-first productivity app for students. Prinia combines an expense tracker,
 - Soft delete with confirmation
 
 ### Pomodoro Timer
-- Configurable focus and rest durations (15-minute aware, persisted across restarts)
+- Configurable focus and rest durations (persisted across restarts)
 - Continuous focus/rest cycling with completion alerts (vibration and sound)
 - Leave-app detection during focus: the timer pauses and a notification asks you to come back
 - Statistics with a 7-day line chart and per-day history
@@ -20,29 +22,35 @@ A local-first productivity app for students. Prinia combines an expense tracker,
 ### Class Timetable
 - Weekly grid on a 24-hour timeline with a live "now" indicator
 - 15-minute granularity for course start time and duration
-- Multi-weekday course creation, custom card colors, week range support
+- Multi-weekday course creation, custom card colors, week range support, adjustable card font size
 - Long-press quick edit to move a course with conflict detection
 - Per-course reminders delivered as local notifications at 08:00 on the due date
+
+### Multi-Device Sync (Android to Android)
+- Bluetooth RFCOMM transport: no network, no hotspot, works on isolated campus networks
+- CRDT (LWW per row) merge: edits on any device converge automatically
+- Incremental transfer with per-peer cursors; first session is a full sync
+- Edits are pushed automatically (debounced) while the peer app is running
+- Selectable sync peers: pick which paired devices participate
 
 ### General
 - Meal-time expense reminders at two user-configured times per day
 - 8 built-in color themes plus a custom palette editor (12 semantic colors, HSV picker with hex input)
-- Adaptive layout: bottom navigation on phones, navigation rail on tablets and desktop-width screens
+- Adaptive layout: bottom navigation on phones, navigation rail on tablets
 - High refresh rate support (up to 120 fps where available)
-- All data stored locally in SQLite (Drift); tables carry `updated_at`, `device_id`, and `is_deleted` columns so future cross-device sync can be added without breaking changes
+- All data stored locally in SQLite (Drift); rows carry `uuid`, `updated_at`, `device_id`, and `is_deleted` columns for CRDT merge
 
 ## Platforms
 
-- Android (primary; phones and tablets)
-
-Windows and Linux targets are included in the repository but not yet validated.
+- Android (phones and tablets), API level supported by Flutter 3.47
+- **Windows: not supported and untested.** The Windows runner files are present and CI may build them, but no testing or support is provided.
 
 ## Building
 
 Requirements:
 
 - Flutter 3.47.1 (stable)
-- Android SDK with platform 36 and NDK 28.2
+- Android SDK with platform 36, build-tools 34+, NDK 28.2, and CMake 3.22.1
 - JDK 17
 
 ```bash
@@ -51,6 +59,8 @@ flutter build apk --release --split-per-abi
 ```
 
 The resulting APKs are written to `build/app/outputs/flutter-apk/`. Install the one matching your device ABI (usually `app-arm64-v8a-release.apk`).
+
+Releases are built automatically by GitHub Actions when a `v*` tag is pushed.
 
 ## Project Layout
 
@@ -62,12 +72,12 @@ lib/
     db/           Drift schema, DAOs, providers
     icons/        curated icon catalog with keyword search
     notifications/ local notification service
-    sync/         sync interface stub for future P2P support
+    sync/         CRDT sync: protocol, engine, Bluetooth transport
   features/
     ledger/       expense tracking
     pomodoro/     focus timer
     timetable/    class schedule
-    settings/     themes, reminders, data management
+    settings/     themes, sync, reminders, data management
   shared/         shared widgets
 ```
 
