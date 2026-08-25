@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/sync/device_identity.dart';
+import '../../core/sync/sync_manager.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/presets.dart';
 import '../../core/theme/theme_controller.dart';
@@ -246,6 +248,76 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             },
           ),
           const SizedBox(height: 24),
+          // ── 多设备同步 ──
+          _SectionTitle('多设备同步'),
+          Consumer(builder: (ctx, sref, _) {
+            final st = sref.watch(syncManagerProvider);
+            return Column(
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('状态',
+                      style:
+                          TextStyle(color: colors.text, fontSize: 15)),
+                  subtitle: Text(
+                    st.status.isEmpty ? _phaseText(st.phase) : st.status,
+                    style: TextStyle(color: colors.textMuted, fontSize: 12),
+                  ),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('本机设备名',
+                      style:
+                          TextStyle(color: colors.text, fontSize: 15)),
+                  subtitle: Text(DeviceIdentity.name,
+                      style:
+                          TextStyle(color: colors.textMuted, fontSize: 12)),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('最近同步',
+                      style:
+                          TextStyle(color: colors.text, fontSize: 15)),
+                  subtitle: Text(
+                    st.lastSyncAt == null
+                        ? '从未'
+                        : DateFormat('yyyy-MM-dd HH:mm')
+                            .format(st.lastSyncAt!),
+                    style: TextStyle(color: colors.textMuted, fontSize: 12),
+                  ),
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: st.phase == SyncPhase.syncing
+                        ? null
+                        : () =>
+                            sref.read(syncManagerProvider.notifier).syncNow(),
+                    icon: st.phase == SyncPhase.syncing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2))
+                        : Icon(Icons.sync, size: 18),
+                    label: const Text('立即同步'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.primary,
+                      side: BorderSide(
+                          color:
+                              colors.primary.withValues(alpha: 0.4)),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                Text('两台设备需先在系统蓝牙中配对；同步通过蓝牙完成，无需网络',
+                    style: TextStyle(
+                        fontSize: 11, color: colors.textMuted)),
+              ],
+            );
+          }),
+          const SizedBox(height: 24),
           // ── 关于 ──
           _SectionTitle('关于'),
           ListTile(
@@ -312,6 +384,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 }
+
+String _phaseText(SyncPhase p) => switch (p) {
+      SyncPhase.off => '未启动',
+      SyncPhase.starting => '启动中…',
+      SyncPhase.listening => '同步准备就绪',
+      SyncPhase.connecting => '连接中…',
+      SyncPhase.syncing => '同步中…',
+    };
 
 class _SectionTitle extends StatelessWidget {
   final String text;

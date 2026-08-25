@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/sync/device_identity.dart';
+import '../../core/sync/sync_manager.dart';
 import '../../core/theme/app_colors.dart';
 import '../features/ledger/ledger_page.dart';
 import '../features/pomodoro/pomodoro_page.dart';
@@ -9,18 +12,29 @@ import '../features/timetable/timetable_page.dart';
 /// 应用主外壳：手机底部导航 / 平板侧边导航。
 ///
 /// 断点 600dp；三个标签共用 [IndexedStack] 保持各页状态。
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => AppShellState();
+  ConsumerState<AppShell> createState() => AppShellState();
 }
 
-class AppShellState extends State<AppShell> {
+class AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
 
   /// 平板侧栏：0~2 主页面，3 = 设置。
   int _railIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // 设备身份就绪后自动进入同步准备
+    DeviceIdentity.load().then((_) {
+      if (mounted) {
+        ref.read(syncManagerProvider.notifier).autoStart();
+      }
+    });
+  }
 
   /// 通知点击等外部入口切换到指定主页面（0=记账本）。
   void switchTo(int index) => setState(() {

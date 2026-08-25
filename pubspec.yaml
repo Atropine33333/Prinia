@@ -38,7 +38,6 @@ dependencies:
   # 高刷新率（120fps，不支持时系统回退）
   flutter_displaymode: ^0.6.0
 
-  flutter_bluetooth_serial: ^0.4.0
 
 dev_dependencies:
   flutter_test:

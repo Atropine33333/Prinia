@@ -10,13 +10,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app_shell.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/sync/device_identity.dart';
 import 'core/theme/theme_controller.dart';
 import 'features/ledger/ledger_edit_page.dart';
 
 final shellKey = GlobalKey<AppShellState>();
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DeviceIdentity.load(); // 同步身份必须先于任何数据库写入
   unawaited(_enableHighRefreshRate());
   unawaited(initializeDateFormatting('zh_CN'));
   // 本地通知初始化（饭点提醒 / 课程提醒）
