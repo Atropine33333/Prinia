@@ -147,12 +147,14 @@ class _ListView extends ConsumerWidget {
             if (!wide) {
               return ListView(children: tiles);
             }
-            // 平板双列网格
-            return GridView.count(
-              crossAxisCount: 2,
-              childAspectRatio: 3.4,
-              shrinkWrap: false,
-              children: tiles,
+            // 平板双列网格（固定行高，不随宽度拉伸）
+            return GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisExtent: 72,
+              ),
+              itemCount: tiles.length,
+              itemBuilder: (ctx, i) => tiles[i],
             );
           },
         );
