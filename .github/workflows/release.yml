@@ -23,6 +23,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - run: flutter pub get
+      - name: Install CMake 3.22.1 (AGP requirement)
+        run: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "cmake;3.22.1" > /dev/null
       # flutter_displaymode 钉死 compileSdk 33，CI 未装该平台，改用 34
       - name: Patch flutter_displaymode compileSdk
         run: |
