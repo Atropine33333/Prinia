@@ -5,7 +5,6 @@ import '../features/ledger/ledger_page.dart';
 import '../features/pomodoro/pomodoro_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/timetable/timetable_page.dart';
-import 'placeholder_page.dart';
 
 /// 应用主外壳：手机底部导航 / 平板侧边导航。
 ///
@@ -22,6 +21,12 @@ class AppShellState extends State<AppShell> {
 
   /// 平板侧栏：0~2 主页面，3 = 设置。
   int _railIndex = 0;
+
+  /// 通知点击等外部入口切换到指定主页面（0=记账本）。
+  void switchTo(int index) => setState(() {
+        _index = index;
+        _railIndex = index;
+      });
 
   static const _destinations = [
     _Destination(
