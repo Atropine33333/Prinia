@@ -23,6 +23,12 @@ jobs:
           distribution: temurin
           java-version: '17'
       - run: flutter pub get
+      # flutter_displaymode 钉死 compileSdk 33，CI 未装该平台，改用 34
+      - name: Patch flutter_displaymode compileSdk
+        run: |
+          f=$(find /home/runner/.pub-cache -path "*flutter_displaymode*/android/build.gradle" | head -1)
+          echo "patching $f"
+          sed -i 's/compileSdkVersion 33/compileSdkVersion 34/' "$f"
       - run: flutter build apk --release --split-per-abi
       - uses: actions/upload-artifact@v4
         with:
@@ -40,7 +46,10 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      # 新 MSVC 硬报错废弃的 /await 协程选项，按官方提示注入抑制宏
       - run: flutter build windows --release
+        env:
+          CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
       - shell: pwsh
         run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath Prinia-windows.zip
       - uses: actions/upload-artifact@v4
