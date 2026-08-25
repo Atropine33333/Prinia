@@ -41,7 +41,7 @@ class $AccountsTable extends Accounts
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('local'),
+    clientDefault: () => DeviceIdentity.current,
   );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
@@ -652,7 +652,7 @@ class $FocusSessionsTable extends FocusSessions
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('local'),
+    clientDefault: () => DeviceIdentity.current,
   );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
@@ -1166,7 +1166,7 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('local'),
+    clientDefault: () => DeviceIdentity.current,
   );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
@@ -1983,7 +1983,7 @@ class $CustomCategoriesTable extends CustomCategories
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('local'),
+    clientDefault: () => DeviceIdentity.current,
   );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
@@ -2444,7 +2444,7 @@ class $AppMetaTable extends AppMeta with TableInfo<$AppMetaTable, AppMetaRow> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('local'),
+    clientDefault: () => DeviceIdentity.current,
   );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',

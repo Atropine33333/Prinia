@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../sync/sync_service.dart';
+import '../sync/device_identity.dart';
 import '../sync/uuid_util.dart';
 import 'daos/accounts_dao.dart';
 import 'daos/courses_dao.dart';

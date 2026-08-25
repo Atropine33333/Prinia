@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../sync/device_identity.dart';
 import '../sync/uuid_util.dart';
 
 /// 同步身份列：uuid 全局唯一，跨设备识别同一行。
@@ -18,7 +19,7 @@ mixin SyncColumns on Table {
 
   TextColumn get deviceId => text()
       .named('device_id')
-      .withDefault(const Constant('local'))();
+      .clientDefault(() => DeviceIdentity.current)();
 
   BoolColumn get isDeleted =>
       boolean().named('is_deleted').withDefault(const Constant(false))();
