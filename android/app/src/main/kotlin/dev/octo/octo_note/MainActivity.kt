@@ -211,17 +211,17 @@ class MainActivity : FlutterActivity() {
         val adapter = btAdapter ?: throw IOException("无蓝牙适配器")
         if (!adapter.isEnabled) throw IOException("蓝牙未开启")
         Thread {
-            var id = -1
+            var sock: BluetoothSocket? = null
             try {
-                val sock = adapter.getRemoteDevice(address)
+                sock = adapter.getRemoteDevice(address)
                     .createRfcommSocketToServiceRecord(SYNC_UUID)
                 adapter.cancelDiscovery()
                 sock.connect()
-                id = registerConnection(sock, incoming = false)
+                val id = registerConnection(sock, incoming = false)
                 mainHandler.post { result.success(id) }
             } catch (e: Exception) {
                 Log.w(TAG, "connect: ${e.message}")
-                try { sock.close() } catch (_: IOException) {}
+                try { sock?.close() } catch (_: IOException) {}
                 mainHandler.post { result.error("connect", e.message, null) }
             }
         }.start()
