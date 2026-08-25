@@ -88,14 +88,6 @@ class AppShellState extends State<AppShell> {
                 selectedIndex: _railIndex,
                 onDestinationSelected: (i) =>
                     setState(() => _railIndex = i),
-                selectedIconTheme:
-                    IconThemeData(size: 30, color: colors.primary),
-                unselectedIconTheme:
-                    IconThemeData(size: 28, color: colors.textMuted),
-                selectedLabelTextStyle:
-                    TextStyle(color: colors.text, fontSize: 14),
-                unselectedLabelTextStyle:
-                    TextStyle(color: colors.textMuted, fontSize: 13),
                 destinations: [
                   for (final d in _destinations)
                     NavigationRailDestination(
