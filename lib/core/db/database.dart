@@ -57,11 +57,11 @@ class AppDatabase extends _$AppDatabase {
             // v5：为四张业务表加 uuid 主键列（回填随机 uuid，保留数据），
             // 并新增 app_meta / sync_peers。
             for (final t in ['accounts', 'focus_sessions', 'courses', 'custom_categories']) {
-              await customStatement('ALTER TABLE \$t ADD COLUMN uuid TEXT');
+              await customStatement('ALTER TABLE $t ADD COLUMN uuid TEXT');
               await customStatement(
-                  "UPDATE \$t SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
+                  "UPDATE $t SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL");
               await customStatement(
-                  'CREATE UNIQUE INDEX IF NOT EXISTS idx_\${t}_uuid ON \$t(uuid)');
+                  'CREATE UNIQUE INDEX IF NOT EXISTS idx_${t}_uuid ON $t(uuid)');
             }
             await m.createTable(appMeta);
             await m.createTable(syncPeers);
