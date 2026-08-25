@@ -5,6 +5,7 @@ import '../features/ledger/ledger_page.dart';
 import '../features/pomodoro/pomodoro_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/timetable/timetable_page.dart';
+import 'placeholder_page.dart';
 
 /// 应用主外壳：手机底部导航 / 平板侧边导航。
 ///
@@ -18,10 +19,9 @@ class AppShell extends StatefulWidget {
 
 class AppShellState extends State<AppShell> {
   int _index = 0;
-  bool _railExtended = false;
 
-  /// 通知点击等外部入口切换标签（0=记账本）。
-  void switchTo(int index) => setState(() => _index = index);
+  /// 平板侧栏：0~2 主页面，3 = 设置。
+  int _railIndex = 0;
 
   static const _destinations = [
     _Destination(
@@ -72,62 +72,54 @@ class AppShellState extends State<AppShell> {
           );
         }
 
+        // ── 平板：常驻侧边栏（参考 Kazumi）──
         return Scaffold(
           body: Row(
             children: [
-              Column(
-                children: [
-                  IconButton(
-                    onPressed: () =>
-                        setState(() => _railExtended = !_railExtended),
-                    icon: Icon(
-                      _railExtended ? Icons.menu_open : Icons.menu,
-                      color: colors.textMuted,
+              NavigationRail(
+                backgroundColor: colors.surface,
+                groupAlignment: -1,
+                labelType: NavigationRailLabelType.all,
+                selectedIndex: _railIndex,
+                onDestinationSelected: (i) =>
+                    setState(() => _railIndex = i),
+                selectedIconTheme:
+                    IconThemeData(size: 30, color: colors.primary),
+                unselectedIconTheme:
+                    IconThemeData(size: 28, color: colors.textMuted),
+                selectedLabelTextStyle:
+                    TextStyle(color: colors.text, fontSize: 14),
+                unselectedLabelTextStyle:
+                    TextStyle(color: colors.textMuted, fontSize: 13),
+                destinations: [
+                  for (final d in _destinations)
+                    NavigationRailDestination(
+                      icon: Icon(d.icon),
+                      selectedIcon: Icon(d.selectedIcon),
+                      label: Text(d.label),
                     ),
-                    tooltip: _railExtended ? '收起' : '展开',
-                  ),
-                  Expanded(
-                    child: NavigationRail(
-                      extended: _railExtended,
-                      minExtendedWidth: 160,
-                      labelType: _railExtended
-                          ? NavigationRailLabelType.none
-                          : NavigationRailLabelType.all,
-                      selectedIndex: _index,
-                      onDestinationSelected: (i) =>
-                          setState(() => _index = i),
-                      leading: Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 16),
-                        child: _railExtended
-                            ? null
-                            : Icon(Icons.sticky_note_2,
-                                color: colors.primary),
-                      ),
-                      destinations: [
-                        for (final d in _destinations)
-                          NavigationRailDestination(
-                            icon: Icon(d.icon),
-                            selectedIcon: Icon(d.selectedIcon),
-                            label: Text(d.label),
-                          ),
-                      ],
-                    ),
+                  const NavigationRailDestination(
+                    icon: Icon(Icons.settings_outlined),
+                    selectedIcon: Icon(Icons.settings),
+                    label: Text('设置'),
                   ),
                 ],
               ),
               VerticalDivider(width: 1, color: colors.border),
               Expanded(
-                child: IndexedStack(index: _index, children: pages),
+                child: _railIndex == 3
+                    ? const SettingsPage()
+                    : IndexedStack(index: _railIndex, children: pages),
               ),
             ],
           ),
         );
-      }
+      },
     );
   }
 }
 
-/// 各页 AppBar 共用的设置入口。
+/// 各页 AppBar 共用的设置入口（手机用）。
 class SettingsAction extends StatelessWidget {
   const SettingsAction({super.key});
 
