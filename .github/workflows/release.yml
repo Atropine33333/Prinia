@@ -26,9 +26,10 @@ jobs:
       # flutter_displaymode 钉死 compileSdk 33，CI 未装该平台，改用 34
       - name: Patch flutter_displaymode compileSdk
         run: |
-          f=$(find /home/runner/.pub-cache -path "*flutter_displaymode*/android/build.gradle" | head -1)
-          echo "patching $f"
-          sed -i 's/compileSdkVersion 33/compileSdkVersion 34/' "$f"
+          find /home/runner/.pub-cache -path "*flutter_displaymode*/android/build.gradle" | while read -r f; do
+            echo "patching $f"
+            sed -i 's/compileSdkVersion 33/compileSdkVersion 34/' "$f"
+          done
       - run: flutter build apk --release --split-per-abi
       - uses: actions/upload-artifact@v4
         with:
