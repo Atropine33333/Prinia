@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
