@@ -80,15 +80,15 @@ class Courses extends Table with SyncColumns {
 
   IntColumn get endWeek => integer().named('end_week')();
 
-  /// 开始小时（0~23，24 小时制）
-  IntColumn get startHour => integer()
-      .named('start_hour')
-      .clientDefault(() => 8)();
+  /// 开始时刻（当日 0 点起的分钟数，15 分钟步进）
+  IntColumn get startMinutes => integer()
+      .named('start_minutes')
+      .clientDefault(() => 8 * 60)();
 
-  /// 时长（小时，≥1）
-  IntColumn get durationHours => integer()
-      .named('duration_hours')
-      .clientDefault(() => 1)();
+  /// 时长（分钟，15 的倍数）
+  IntColumn get durationMinutes => integer()
+      .named('duration_minutes')
+      .clientDefault(() => 60)();
 
   TextColumn get colorHex => text()
       .named('color_hex')

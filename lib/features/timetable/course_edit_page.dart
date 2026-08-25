@@ -19,7 +19,7 @@ const coursePalette = [
 class CourseEditPage extends ConsumerStatefulWidget {
   final CourseRow? existing;
   final int initialWeekday;
-  final int initialHour;
+  final int initialHour; // 仅作为初始分钟数的整小时入口
 
   const CourseEditPage({
     super.key,
@@ -39,8 +39,8 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
   late Set<int> _weekdays;
   late int _startWeek;
   late int _endWeek;
-  late int _startHour;
-  late int _durationHours;
+  late int _startMinutes;
+  late int _durationMinutes;
   late String _colorHex;
   late List<CourseReminder> _reminders;
 
@@ -56,8 +56,8 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     _weekdays = e != null ? {e.weekday} : {widget.initialWeekday};
     _startWeek = e?.startWeek ?? 1;
     _endWeek = e?.endWeek ?? 16;
-    _startHour = e?.startHour ?? widget.initialHour;
-    _durationHours = e?.durationHours ?? 1;
+    _startMinutes = e?.startMinutes ?? widget.initialHour * 60;
+    _durationMinutes = e?.durationMinutes ?? 60;
     _colorHex = e?.colorHex ??
         coursePalette[(e == null ? widget.initialWeekday : e.id) % coursePalette.length];
     _reminders = e == null ? [] : parseReminders(e.remindersJson);
@@ -139,25 +139,42 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
             ],
           ),
           const SizedBox(height: 16),
-          // 时间
-          _SectionLabel(
-              '时间（$_startHour:00 – ${_startHour + _durationHours}:00）'),
+          // 时间（15 分钟步进）
+          _SectionLabel('时间（${_fmt(_startMinutes)} – ${_fmt(_startMinutes + _durationMinutes)}）'),
           Row(
             children: [
               _Stepper(
                 label: '开始',
-                value: _startHour,
+                value: 0,
                 min: 0,
-                max: 23 - _durationHours,
-                onChanged: (v) => setState(() => _startHour = v),
+                max: 0,
+                onChanged: (_) {},
+                customText: _fmt(_startMinutes),
+                onDown: () => setState(() {
+                  if (_startMinutes >= 15) _startMinutes -= 15;
+                }),
+                onUp: () => setState(() {
+                  if (_startMinutes + _durationMinutes <= 24 * 60 - 15) {
+                    _startMinutes += 15;
+                  }
+                }),
               ),
               const SizedBox(width: 16),
               _Stepper(
                 label: '时长',
-                value: _durationHours,
-                min: 1,
-                max: 24 - _startHour,
-                onChanged: (v) => setState(() => _durationHours = v),
+                value: 0,
+                min: 0,
+                max: 0,
+                onChanged: (_) {},
+                customText: _durText(_durationMinutes),
+                onDown: () => setState(() {
+                  if (_durationMinutes > 15) _durationMinutes -= 15;
+                }),
+                onUp: () => setState(() {
+                  if (_startMinutes + _durationMinutes <= 24 * 60 - 15) {
+                    _durationMinutes += 15;
+                  }
+                }),
               ),
             ],
           ),
@@ -313,8 +330,8 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
       weekday: _weekdays.first,
       startWeek: _startWeek,
       endWeek: _endWeek,
-      startHour: Value(_startHour),
-      durationHours: Value(_durationHours),
+      startMinutes: Value(_startMinutes),
+      durationMinutes: Value(_durationMinutes),
       colorHex: Value(_colorHex),
       remindersJson: Value(encodeReminders(_reminders)),
     );
@@ -389,6 +406,17 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
   }
 }
 
+String _fmt(int m) =>
+    '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
+
+String _durText(int minutes) {
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  if (h == 0) return '$m 分钟';
+  if (m == 0) return '$h 小时';
+  return '$h 小时 $m 分钟';
+}
+
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
@@ -413,6 +441,9 @@ class _Stepper extends StatelessWidget {
   final int min;
   final int max;
   final ValueChanged<int> onChanged;
+  final String? customText;
+  final VoidCallback? onDown;
+  final VoidCallback? onUp;
 
   const _Stepper({
     required this.label,
@@ -420,6 +451,9 @@ class _Stepper extends StatelessWidget {
     required this.min,
     required this.max,
     required this.onChanged,
+    this.customText,
+    this.onDown,
+    this.onUp,
   });
 
   @override
@@ -439,18 +473,18 @@ class _Stepper extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: colors.textMuted)),
           IconButton(
             visualDensity: VisualDensity.compact,
-            onPressed: value > min ? () => onChanged(value - 1) : null,
+            onPressed: onDown ?? (value > min ? () => onChanged(value - 1) : null),
             icon: const Icon(Icons.remove, size: 18),
             color: colors.text,
           ),
-          Text('$value',
+          Text(customText ?? '$value',
               style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: colors.text)),
           IconButton(
             visualDensity: VisualDensity.compact,
-            onPressed: value < max ? () => onChanged(value + 1) : null,
+            onPressed: onUp ?? (value < max ? () => onChanged(value + 1) : null),
             icon: const Icon(Icons.add, size: 18),
             color: colors.text,
           ),
