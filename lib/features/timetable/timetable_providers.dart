@@ -70,7 +70,7 @@ List<CourseRow> coursesForDay(List<CourseRow> all, int week, int weekday) {
           week >= c.startWeek &&
           week <= c.endWeek)
       .toList()
-    ..sort((a, b) => a.startHour.compareTo(b.startHour));
+    ..sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
 }
 
 /// 课表课程名字号（设置页可调）。

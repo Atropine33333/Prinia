@@ -11,6 +11,9 @@ import 'course_edit_page.dart';
 import 'timetable_providers.dart';
 
 const double hourHeight = 64.0;
+
+/// 分钟 → 像素偏移。
+double minutesToOffset(int minutes) => minutes / 60 * hourHeight;
 const double _dayHeaderH = 34.0;
 const double _slotColW = 44.0;
 
@@ -36,13 +39,13 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     if (_scrolledToInit) return;
     _scrolledToInit = true;
     final active = all.where((c) => !c.isDeleted).toList();
-    var hour = 8;
+    var startMin = 8 * 60;
     for (final c in active) {
-      if (c.startHour < hour) hour = c.startHour;
+      if (c.startMinutes < startMin) startMin = c.startMinutes;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
-        _scrollCtrl.jumpTo(hour * hourHeight);
+        _scrollCtrl.jumpTo(minutesToOffset(startMin));
       }
     });
   }
@@ -143,7 +146,7 @@ class _Grid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final now = DateTime.now();
-    final nowOffset = (now.hour + now.minute / 60) * hourHeight;
+    final nowOffset = minutesToOffset(now.hour * 60 + now.minute);
     final fontSize = ref.watch(timetableFontProvider);
 
     return SingleChildScrollView(
@@ -261,9 +264,9 @@ class _Grid extends ConsumerWidget {
                                   week >= c.startWeek &&
                                   week <= c.endWeek)
                                 Positioned(
-                                  top: c.startHour * hourHeight + 1,
+                                  top: minutesToOffset(c.startMinutes) + 1,
                                   height:
-                                      c.durationHours * hourHeight - 2,
+                                      minutesToOffset(c.durationMinutes) - 2,
                                   left: 1,
                                   right: 1,
                                   child: CourseCard(
@@ -298,39 +301,39 @@ void showQuickEdit(
   final dao = ref.read(databaseProvider).coursesDao;
   var cur = initial;
 
-  bool conflict(int weekday, int startHour) {
+  bool conflict(int weekday, int startMinutes) {
     for (final o in all) {
       if (o.id == cur.id || o.isDeleted || o.weekday != weekday) continue;
-      if (startHour < o.startHour + o.durationHours &&
-          o.startHour < startHour + cur.durationHours) {
+      if (startMinutes < o.startMinutes + o.durationMinutes &&
+          o.startMinutes < startMinutes + cur.durationMinutes) {
         return true;
       }
     }
     return false;
   }
 
-  bool can(int weekday, int startHour) =>
+  bool can(int weekday, int startMinutes) =>
       weekday >= 1 &&
       weekday <= 7 &&
-      startHour >= 0 &&
-      startHour + cur.durationHours <= 24 &&
-      !conflict(weekday, startHour);
+      startMinutes >= 0 &&
+      startMinutes + cur.durationMinutes <= 24 * 60 &&
+      !conflict(weekday, startMinutes);
 
   showModalBottomSheet(
     context: context,
     builder: (ctx) => SafeArea(
       child: StatefulBuilder(
         builder: (ctx, setSheet) {
-          Future<void> move(int weekday, int startHour) async {
+          Future<void> move(int weekday, int startMinutes) async {
             await dao.updateCourse(
               cur.id,
               CoursesCompanion(
                 weekday: Value(weekday),
-                startHour: Value(startHour),
+                startMinutes: Value(startMinutes),
               ),
             );
             setSheet(
-                () => cur = _copyWithTime(cur, weekday, startHour));
+                () => cur = _copyWithTime(cur, weekday, startMinutes));
           }
 
           return Padding(
@@ -340,7 +343,7 @@ void showQuickEdit(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${cur.name} · ${cur.startHour}:00 – ${cur.startHour + cur.durationHours}:00 · ${cur.durationHours} 小时',
+                  '${cur.name} · ${_fmtMin(cur.startMinutes)} – ${_fmtMin(cur.startMinutes + cur.durationMinutes)} · ${_durText(cur.durationMinutes)}',
                   style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -356,30 +359,30 @@ void showQuickEdit(
                   children: [
                     _QuickBtn(
                       icon: Icons.arrow_upward,
-                      label: '上移',
-                      onTap: can(cur.weekday, cur.startHour - 1)
-                          ? () => move(cur.weekday, cur.startHour - 1)
+                      label: '上移 15 分',
+                      onTap: can(cur.weekday, cur.startMinutes - 15)
+                          ? () => move(cur.weekday, cur.startMinutes - 15)
                           : null,
                     ),
                     _QuickBtn(
                       icon: Icons.arrow_downward,
-                      label: '下移',
-                      onTap: can(cur.weekday, cur.startHour + 1)
-                          ? () => move(cur.weekday, cur.startHour + 1)
+                      label: '下移 15 分',
+                      onTap: can(cur.weekday, cur.startMinutes + 15)
+                          ? () => move(cur.weekday, cur.startMinutes + 15)
                           : null,
                     ),
                     _QuickBtn(
                       icon: Icons.arrow_back,
                       label: '前一天',
-                      onTap: cur.weekday > 1 && can(cur.weekday - 1, cur.startHour)
-                          ? () => move(cur.weekday - 1, cur.startHour)
+                      onTap: cur.weekday > 1 && can(cur.weekday - 1, cur.startMinutes)
+                          ? () => move(cur.weekday - 1, cur.startMinutes)
                           : null,
                     ),
                     _QuickBtn(
                       icon: Icons.arrow_forward,
                       label: '后一天',
-                      onTap: cur.weekday < 7 && can(cur.weekday + 1, cur.startHour)
-                          ? () => move(cur.weekday + 1, cur.startHour)
+                      onTap: cur.weekday < 7 && can(cur.weekday + 1, cur.startMinutes)
+                          ? () => move(cur.weekday + 1, cur.startMinutes)
                           : null,
                     ),
                   ],
@@ -408,7 +411,7 @@ void showQuickEdit(
   );
 }
 
-CourseRow _copyWithTime(CourseRow c, int weekday, int startHour) {
+CourseRow _copyWithTime(CourseRow c, int weekday, int startMinutes) {
   return CourseRow(
     id: c.id,
     updatedAt: c.updatedAt,
@@ -420,11 +423,22 @@ CourseRow _copyWithTime(CourseRow c, int weekday, int startHour) {
     weekday: weekday,
     startWeek: c.startWeek,
     endWeek: c.endWeek,
-    startHour: startHour,
-    durationHours: c.durationHours,
+    startMinutes: startMinutes,
+    durationMinutes: c.durationMinutes,
     colorHex: c.colorHex,
     remindersJson: c.remindersJson,
   );
+}
+
+String _fmtMin(int m) =>
+    '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
+
+String _durText(int minutes) {
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  if (h == 0) return '$m 分钟';
+  if (m == 0) return '$h 小时';
+  return '$h 小时 $m 分钟';
 }
 
 class _QuickBtn extends StatelessWidget {
