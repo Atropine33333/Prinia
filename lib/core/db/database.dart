@@ -31,6 +31,23 @@ class AppDatabase extends _$AppDatabase {
   /// 当前设备标识（未来多端同步时区分来源）。
   String get deviceId => NoOpSyncService.deviceId;
 
+  /// 全表最大 updated_at（判断是否有待同步变更）。
+  Future<int> maxUpdatedAt() async {
+    final row = await customSelect(
+      'SELECT MAX(u) AS m FROM ('
+      ' SELECT MAX(updated_at) AS u FROM accounts UNION ALL'
+      ' SELECT MAX(updated_at) FROM focus_sessions UNION ALL'
+      ' SELECT MAX(updated_at) FROM courses UNION ALL'
+      ' SELECT MAX(updated_at) FROM custom_categories UNION ALL'
+      ' SELECT MAX(updated_at) FROM app_meta'
+      ')',
+    ).getSingleOrNull();
+    final v = row?.data['m'];
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return 0;
+  }
+
   /// 清空全部业务数据（调试/重置用）。
   Future<void> clearAllData() async {
     await delete(accounts).go();

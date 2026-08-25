@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'bluetooth_transport.dart';
@@ -46,6 +47,8 @@ class SyncState {
 /// 同时尝试连接已知对端；会话结束后回到准备态。设置页可手动触发。
 class SyncManager extends Notifier<SyncState> {
   StreamSubscription<BtEvent>? _eventSub;
+  StreamSubscription<Set<TableUpdate>>? _dbSub;
+  Timer? _debounce;
   bool _busy = false; // 正在跑会话
   bool _started = false;
 
@@ -57,9 +60,41 @@ class SyncManager extends Notifier<SyncState> {
 
   Future<void> _teardown() async {
     await _eventSub?.cancel();
+    await _dbSub?.cancel();
+    _debounce?.cancel();
     try {
       await PriniaBluetooth.stopServer();
     } catch (_) {}
+  }
+
+  /// 监听本地写入：任何编辑 → 防抖后自动推送到在线对端。
+  void _hookLocalWrites() {
+    final db = ref.read(databaseProvider);
+    _dbSub ??= db
+        .tableUpdates(TableUpdateQuery.onAllTables([
+      db.accounts,
+      db.focusSessions,
+      db.courses,
+      db.customCategories,
+      db.appMeta,
+    ]))
+        .listen((_) {
+      if (_busy) return; // 会话内写入（应用对端数据）不触发
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(seconds: 3), _maybeSync);
+    });
+  }
+
+  /// 有对端且本地存在比其游标新的变更才发起连接。
+  Future<void> _maybeSync() async {
+    if (_busy) return;
+    final db = ref.read(databaseProvider);
+    final peers = await db.select(db.syncPeers).get();
+    if (peers.isEmpty) return; // 从未同步过：等手动触发
+    final maxTs = await db.maxUpdatedAt();
+    final pending = peers.any((p) => maxTs > p.lastSyncAt);
+    if (!pending) return;
+    await _begin(manual: true);
   }
 
   // ── 启动 ───────────────────────────────────────────────────
@@ -100,6 +135,7 @@ class SyncManager extends Notifier<SyncState> {
     }
 
     _ensureEventRouting();
+    _hookLocalWrites();
 
     // 常驻服务端监听（同步完成后仍保持准备态）
     await PriniaBluetooth.startServer();
@@ -154,6 +190,7 @@ class SyncManager extends Notifier<SyncState> {
       } finally {
         await channel.close();
         _busy = false;
+        _debounce = Timer(const Duration(seconds: 2), _maybeSync);
       }
     } else if (e.type == 'closed' && _busy) {
       // 会话通道被对端关闭：engine 的流会自然出错/结束
