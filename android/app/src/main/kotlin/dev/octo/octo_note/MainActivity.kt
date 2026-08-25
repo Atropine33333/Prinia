@@ -217,7 +217,6 @@ class MainActivity : FlutterActivity() {
             try {
                 sock = adapter.getRemoteDevice(address)
                     .createRfcommSocketToServiceRecord(SYNC_UUID)
-                adapter.cancelDiscovery()
                 sock.connect()
                 val id = registerConnection(sock, incoming = false)
                 mainHandler.post { result.success(id) }
