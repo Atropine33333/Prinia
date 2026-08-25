@@ -323,7 +323,7 @@ class _StatsViewState extends ConsumerState<_StatsView> {
                   Text(
                     ref.watch(selectedStatsDayProvider) == null
                         ? '分类占比 · 本月'
-                        : '分类占比 · \${ref.watch(selectedStatsDayProvider)}日',
+                        : '分类占比 · ${ref.watch(selectedStatsDayProvider)}日',
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
