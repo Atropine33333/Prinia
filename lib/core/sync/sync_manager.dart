@@ -225,6 +225,7 @@ class SyncManager extends Notifier<SyncState> {
     }
 
     var anyConnectFailed = false;
+    var anySessionFailed = false;
 
     // 双方同时发起会互相击杀（忙时互关），随机抖动+重试让一方先赢
     for (var attempt = 1; attempt <= 3; attempt++) {
@@ -276,6 +277,7 @@ class SyncManager extends Notifier<SyncState> {
             lastSyncAt: DateTime.now(),
           );
         } catch (err) {
+          anySessionFailed = true;
           state = state.copyWith(
             phase: SyncPhase.listening,
             status: '同步失败',
@@ -287,7 +289,8 @@ class SyncManager extends Notifier<SyncState> {
         }
         // 不 return：继续本轮剩余对端（多设备接力）
       }
-      break; // 一轮完成
+      // 全部会话成功则不必重试；有失败（互连击杀等）才抖动重扫
+      if (!anySessionFailed) break;
     }
 
     // 有对端没连上（离线）：设置冷却，防止空会话循环
