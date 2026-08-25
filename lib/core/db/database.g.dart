@@ -9,6 +9,16 @@ class $AccountsTable extends Accounts
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $AccountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: genUuid,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -47,19 +57,6 @@ class $AccountsTable extends Accounts
       'CHECK ("is_deleted" IN (0, 1))',
     ),
     defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
   );
   static const VerificationMeta _amountMeta = const VerificationMeta('amount');
   @override
@@ -133,10 +130,10 @@ class $AccountsTable extends Accounts
   );
   @override
   List<GeneratedColumn> get $columns => [
+    uuid,
     updatedAt,
     deviceId,
     isDeleted,
-    id,
     amount,
     type,
     category,
@@ -156,6 +153,12 @@ class $AccountsTable extends Accounts
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -173,9 +176,6 @@ class $AccountsTable extends Accounts
         _isDeletedMeta,
         isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
       );
-    }
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
     if (data.containsKey('amount')) {
       context.handle(
@@ -223,11 +223,15 @@ class $AccountsTable extends Accounts
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {uuid};
   @override
   AccountRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return AccountRow(
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -239,10 +243,6 @@ class $AccountsTable extends Accounts
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
-      )!,
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
       )!,
       amount: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
@@ -278,10 +278,10 @@ class $AccountsTable extends Accounts
 }
 
 class AccountRow extends DataClass implements Insertable<AccountRow> {
+  final String uuid;
   final int updatedAt;
   final String deviceId;
   final bool isDeleted;
-  final int id;
 
   /// 金额恒为正数，收支由 [type] 区分。
   final double amount;
@@ -295,10 +295,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   final int occurredAt;
   final int createdAt;
   const AccountRow({
+    required this.uuid,
     required this.updatedAt,
     required this.deviceId,
     required this.isDeleted,
-    required this.id,
     required this.amount,
     required this.type,
     required this.category,
@@ -309,10 +309,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['uuid'] = Variable<String>(uuid);
     map['updated_at'] = Variable<int>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
     map['amount'] = Variable<double>(amount);
     map['type'] = Variable<String>(type);
     map['category'] = Variable<String>(category);
@@ -326,10 +326,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
 
   AccountsCompanion toCompanion(bool nullToAbsent) {
     return AccountsCompanion(
+      uuid: Value(uuid),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
       isDeleted: Value(isDeleted),
-      id: Value(id),
       amount: Value(amount),
       type: Value(type),
       category: Value(category),
@@ -345,10 +345,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return AccountRow(
+      uuid: serializer.fromJson<String>(json['uuid']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
       amount: serializer.fromJson<double>(json['amount']),
       type: serializer.fromJson<String>(json['type']),
       category: serializer.fromJson<String>(json['category']),
@@ -361,10 +361,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'uuid': serializer.toJson<String>(uuid),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
       'amount': serializer.toJson<double>(amount),
       'type': serializer.toJson<String>(type),
       'category': serializer.toJson<String>(category),
@@ -375,10 +375,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   }
 
   AccountRow copyWith({
+    String? uuid,
     int? updatedAt,
     String? deviceId,
     bool? isDeleted,
-    int? id,
     double? amount,
     String? type,
     String? category,
@@ -386,10 +386,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     int? occurredAt,
     int? createdAt,
   }) => AccountRow(
+    uuid: uuid ?? this.uuid,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
     isDeleted: isDeleted ?? this.isDeleted,
-    id: id ?? this.id,
     amount: amount ?? this.amount,
     type: type ?? this.type,
     category: category ?? this.category,
@@ -399,10 +399,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   );
   AccountRow copyWithCompanion(AccountsCompanion data) {
     return AccountRow(
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
-      id: data.id.present ? data.id.value : this.id,
       amount: data.amount.present ? data.amount.value : this.amount,
       type: data.type.present ? data.type.value : this.type,
       category: data.category.present ? data.category.value : this.category,
@@ -417,10 +417,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   @override
   String toString() {
     return (StringBuffer('AccountRow(')
+          ..write('uuid: $uuid, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('id: $id, ')
           ..write('amount: $amount, ')
           ..write('type: $type, ')
           ..write('category: $category, ')
@@ -433,10 +433,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
 
   @override
   int get hashCode => Object.hash(
+    uuid,
     updatedAt,
     deviceId,
     isDeleted,
-    id,
     amount,
     type,
     category,
@@ -448,10 +448,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is AccountRow &&
+          other.uuid == this.uuid &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId &&
           other.isDeleted == this.isDeleted &&
-          other.id == this.id &&
           other.amount == this.amount &&
           other.type == this.type &&
           other.category == this.category &&
@@ -461,97 +461,107 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
 }
 
 class AccountsCompanion extends UpdateCompanion<AccountRow> {
+  final Value<String> uuid;
   final Value<int> updatedAt;
   final Value<String> deviceId;
   final Value<bool> isDeleted;
-  final Value<int> id;
   final Value<double> amount;
   final Value<String> type;
   final Value<String> category;
   final Value<String?> note;
   final Value<int> occurredAt;
   final Value<int> createdAt;
+  final Value<int> rowid;
   const AccountsCompanion({
+    this.uuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
     this.amount = const Value.absent(),
     this.type = const Value.absent(),
     this.category = const Value.absent(),
     this.note = const Value.absent(),
     this.occurredAt = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   AccountsCompanion.insert({
+    this.uuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
     required double amount,
     required String type,
     required String category,
     this.note = const Value.absent(),
     this.occurredAt = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
   }) : amount = Value(amount),
        type = Value(type),
        category = Value(category);
   static Insertable<AccountRow> custom({
+    Expression<String>? uuid,
     Expression<int>? updatedAt,
     Expression<String>? deviceId,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
     Expression<double>? amount,
     Expression<String>? type,
     Expression<String>? category,
     Expression<String>? note,
     Expression<int>? occurredAt,
     Expression<int>? createdAt,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (uuid != null) 'uuid': uuid,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
       if (isDeleted != null) 'is_deleted': isDeleted,
-      if (id != null) 'id': id,
       if (amount != null) 'amount': amount,
       if (type != null) 'type': type,
       if (category != null) 'category': category,
       if (note != null) 'note': note,
       if (occurredAt != null) 'occurred_at': occurredAt,
       if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   AccountsCompanion copyWith({
+    Value<String>? uuid,
     Value<int>? updatedAt,
     Value<String>? deviceId,
     Value<bool>? isDeleted,
-    Value<int>? id,
     Value<double>? amount,
     Value<String>? type,
     Value<String>? category,
     Value<String?>? note,
     Value<int>? occurredAt,
     Value<int>? createdAt,
+    Value<int>? rowid,
   }) {
     return AccountsCompanion(
+      uuid: uuid ?? this.uuid,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
       isDeleted: isDeleted ?? this.isDeleted,
-      id: id ?? this.id,
       amount: amount ?? this.amount,
       type: type ?? this.type,
       category: category ?? this.category,
       note: note ?? this.note,
       occurredAt: occurredAt ?? this.occurredAt,
       createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -560,9 +570,6 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
-    }
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
     }
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
@@ -582,22 +589,26 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('AccountsCompanion(')
+          ..write('uuid: $uuid, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('id: $id, ')
           ..write('amount: $amount, ')
           ..write('type: $type, ')
           ..write('category: $category, ')
           ..write('note: $note, ')
           ..write('occurredAt: $occurredAt, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -609,6 +620,16 @@ class $FocusSessionsTable extends FocusSessions
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $FocusSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: genUuid,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -647,19 +668,6 @@ class $FocusSessionsTable extends FocusSessions
       'CHECK ("is_deleted" IN (0, 1))',
     ),
     defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
   );
   static const VerificationMeta _durationSecondsMeta = const VerificationMeta(
     'durationSeconds',
@@ -711,10 +719,10 @@ class $FocusSessionsTable extends FocusSessions
   );
   @override
   List<GeneratedColumn> get $columns => [
+    uuid,
     updatedAt,
     deviceId,
     isDeleted,
-    id,
     durationSeconds,
     startTime,
     endTime,
@@ -732,6 +740,12 @@ class $FocusSessionsTable extends FocusSessions
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -749,9 +763,6 @@ class $FocusSessionsTable extends FocusSessions
         _isDeletedMeta,
         isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
       );
-    }
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
     if (data.containsKey('duration_seconds')) {
       context.handle(
@@ -788,11 +799,15 @@ class $FocusSessionsTable extends FocusSessions
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {uuid};
   @override
   FocusSessionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return FocusSessionRow(
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -804,10 +819,6 @@ class $FocusSessionsTable extends FocusSessions
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
-      )!,
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
       )!,
       durationSeconds: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -835,10 +846,10 @@ class $FocusSessionsTable extends FocusSessions
 }
 
 class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
+  final String uuid;
   final int updatedAt;
   final String deviceId;
   final bool isDeleted;
-  final int id;
   final int durationSeconds;
   final int startTime;
   final int endTime;
@@ -846,10 +857,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
   /// 'completed' 或 'interrupted'
   final String status;
   const FocusSessionRow({
+    required this.uuid,
     required this.updatedAt,
     required this.deviceId,
     required this.isDeleted,
-    required this.id,
     required this.durationSeconds,
     required this.startTime,
     required this.endTime,
@@ -858,10 +869,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['uuid'] = Variable<String>(uuid);
     map['updated_at'] = Variable<int>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
     map['duration_seconds'] = Variable<int>(durationSeconds);
     map['start_time'] = Variable<int>(startTime);
     map['end_time'] = Variable<int>(endTime);
@@ -871,10 +882,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
 
   FocusSessionsCompanion toCompanion(bool nullToAbsent) {
     return FocusSessionsCompanion(
+      uuid: Value(uuid),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
       isDeleted: Value(isDeleted),
-      id: Value(id),
       durationSeconds: Value(durationSeconds),
       startTime: Value(startTime),
       endTime: Value(endTime),
@@ -888,10 +899,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return FocusSessionRow(
+      uuid: serializer.fromJson<String>(json['uuid']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
       durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
       startTime: serializer.fromJson<int>(json['startTime']),
       endTime: serializer.fromJson<int>(json['endTime']),
@@ -902,10 +913,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'uuid': serializer.toJson<String>(uuid),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
       'durationSeconds': serializer.toJson<int>(durationSeconds),
       'startTime': serializer.toJson<int>(startTime),
       'endTime': serializer.toJson<int>(endTime),
@@ -914,19 +925,19 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
   }
 
   FocusSessionRow copyWith({
+    String? uuid,
     int? updatedAt,
     String? deviceId,
     bool? isDeleted,
-    int? id,
     int? durationSeconds,
     int? startTime,
     int? endTime,
     String? status,
   }) => FocusSessionRow(
+    uuid: uuid ?? this.uuid,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
     isDeleted: isDeleted ?? this.isDeleted,
-    id: id ?? this.id,
     durationSeconds: durationSeconds ?? this.durationSeconds,
     startTime: startTime ?? this.startTime,
     endTime: endTime ?? this.endTime,
@@ -934,10 +945,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
   );
   FocusSessionRow copyWithCompanion(FocusSessionsCompanion data) {
     return FocusSessionRow(
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
-      id: data.id.present ? data.id.value : this.id,
       durationSeconds: data.durationSeconds.present
           ? data.durationSeconds.value
           : this.durationSeconds,
@@ -950,10 +961,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
   @override
   String toString() {
     return (StringBuffer('FocusSessionRow(')
+          ..write('uuid: $uuid, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('id: $id, ')
           ..write('durationSeconds: $durationSeconds, ')
           ..write('startTime: $startTime, ')
           ..write('endTime: $endTime, ')
@@ -964,10 +975,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
 
   @override
   int get hashCode => Object.hash(
+    uuid,
     updatedAt,
     deviceId,
     isDeleted,
-    id,
     durationSeconds,
     startTime,
     endTime,
@@ -977,10 +988,10 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is FocusSessionRow &&
+          other.uuid == this.uuid &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId &&
           other.isDeleted == this.isDeleted &&
-          other.id == this.id &&
           other.durationSeconds == this.durationSeconds &&
           other.startTime == this.startTime &&
           other.endTime == this.endTime &&
@@ -988,82 +999,92 @@ class FocusSessionRow extends DataClass implements Insertable<FocusSessionRow> {
 }
 
 class FocusSessionsCompanion extends UpdateCompanion<FocusSessionRow> {
+  final Value<String> uuid;
   final Value<int> updatedAt;
   final Value<String> deviceId;
   final Value<bool> isDeleted;
-  final Value<int> id;
   final Value<int> durationSeconds;
   final Value<int> startTime;
   final Value<int> endTime;
   final Value<String> status;
+  final Value<int> rowid;
   const FocusSessionsCompanion({
+    this.uuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
     this.durationSeconds = const Value.absent(),
     this.startTime = const Value.absent(),
     this.endTime = const Value.absent(),
     this.status = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   FocusSessionsCompanion.insert({
+    this.uuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
     this.durationSeconds = const Value.absent(),
     this.startTime = const Value.absent(),
     required int endTime,
     required String status,
+    this.rowid = const Value.absent(),
   }) : endTime = Value(endTime),
        status = Value(status);
   static Insertable<FocusSessionRow> custom({
+    Expression<String>? uuid,
     Expression<int>? updatedAt,
     Expression<String>? deviceId,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
     Expression<int>? durationSeconds,
     Expression<int>? startTime,
     Expression<int>? endTime,
     Expression<String>? status,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (uuid != null) 'uuid': uuid,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
       if (isDeleted != null) 'is_deleted': isDeleted,
-      if (id != null) 'id': id,
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (startTime != null) 'start_time': startTime,
       if (endTime != null) 'end_time': endTime,
       if (status != null) 'status': status,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   FocusSessionsCompanion copyWith({
+    Value<String>? uuid,
     Value<int>? updatedAt,
     Value<String>? deviceId,
     Value<bool>? isDeleted,
-    Value<int>? id,
     Value<int>? durationSeconds,
     Value<int>? startTime,
     Value<int>? endTime,
     Value<String>? status,
+    Value<int>? rowid,
   }) {
     return FocusSessionsCompanion(
+      uuid: uuid ?? this.uuid,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
       isDeleted: isDeleted ?? this.isDeleted,
-      id: id ?? this.id,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       status: status ?? this.status,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -1072,9 +1093,6 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSessionRow> {
     }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
-    }
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
     }
     if (durationSeconds.present) {
       map['duration_seconds'] = Variable<int>(durationSeconds.value);
@@ -1088,20 +1106,24 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSessionRow> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('FocusSessionsCompanion(')
+          ..write('uuid: $uuid, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('id: $id, ')
           ..write('durationSeconds: $durationSeconds, ')
           ..write('startTime: $startTime, ')
           ..write('endTime: $endTime, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1112,6 +1134,16 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $CoursesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: genUuid,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -1150,19 +1182,6 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
       'CHECK ("is_deleted" IN (0, 1))',
     ),
     defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -1284,10 +1303,10 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
   );
   @override
   List<GeneratedColumn> get $columns => [
+    uuid,
     updatedAt,
     deviceId,
     isDeleted,
-    id,
     name,
     teacher,
     room,
@@ -1311,6 +1330,12 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -1328,9 +1353,6 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
         _isDeletedMeta,
         isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
       );
-    }
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -1413,11 +1435,15 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {uuid};
   @override
   CourseRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return CourseRow(
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -1429,10 +1455,6 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
-      )!,
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
       )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -1484,10 +1506,10 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
 }
 
 class CourseRow extends DataClass implements Insertable<CourseRow> {
+  final String uuid;
   final int updatedAt;
   final String deviceId;
   final bool isDeleted;
-  final int id;
   final String name;
   final String? teacher;
   final String? room;
@@ -1507,10 +1529,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   /// JSON 数组：[{"date":"2025-12-01","text":"交作业"}]
   final String remindersJson;
   const CourseRow({
+    required this.uuid,
     required this.updatedAt,
     required this.deviceId,
     required this.isDeleted,
-    required this.id,
     required this.name,
     this.teacher,
     this.room,
@@ -1525,10 +1547,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['uuid'] = Variable<String>(uuid);
     map['updated_at'] = Variable<int>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || teacher != null) {
       map['teacher'] = Variable<String>(teacher);
@@ -1548,10 +1570,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
 
   CoursesCompanion toCompanion(bool nullToAbsent) {
     return CoursesCompanion(
+      uuid: Value(uuid),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
       isDeleted: Value(isDeleted),
-      id: Value(id),
       name: Value(name),
       teacher: teacher == null && nullToAbsent
           ? const Value.absent()
@@ -1573,10 +1595,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CourseRow(
+      uuid: serializer.fromJson<String>(json['uuid']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       teacher: serializer.fromJson<String?>(json['teacher']),
       room: serializer.fromJson<String?>(json['room']),
@@ -1593,10 +1615,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'uuid': serializer.toJson<String>(uuid),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'teacher': serializer.toJson<String?>(teacher),
       'room': serializer.toJson<String?>(room),
@@ -1611,10 +1633,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   }
 
   CourseRow copyWith({
+    String? uuid,
     int? updatedAt,
     String? deviceId,
     bool? isDeleted,
-    int? id,
     String? name,
     Value<String?> teacher = const Value.absent(),
     Value<String?> room = const Value.absent(),
@@ -1626,10 +1648,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     String? colorHex,
     String? remindersJson,
   }) => CourseRow(
+    uuid: uuid ?? this.uuid,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
     isDeleted: isDeleted ?? this.isDeleted,
-    id: id ?? this.id,
     name: name ?? this.name,
     teacher: teacher.present ? teacher.value : this.teacher,
     room: room.present ? room.value : this.room,
@@ -1643,10 +1665,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   );
   CourseRow copyWithCompanion(CoursesCompanion data) {
     return CourseRow(
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
-      id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       teacher: data.teacher.present ? data.teacher.value : this.teacher,
       room: data.room.present ? data.room.value : this.room,
@@ -1669,10 +1691,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   @override
   String toString() {
     return (StringBuffer('CourseRow(')
+          ..write('uuid: $uuid, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('teacher: $teacher, ')
           ..write('room: $room, ')
@@ -1689,10 +1711,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
 
   @override
   int get hashCode => Object.hash(
+    uuid,
     updatedAt,
     deviceId,
     isDeleted,
-    id,
     name,
     teacher,
     room,
@@ -1708,10 +1730,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CourseRow &&
+          other.uuid == this.uuid &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId &&
           other.isDeleted == this.isDeleted &&
-          other.id == this.id &&
           other.name == this.name &&
           other.teacher == this.teacher &&
           other.room == this.room &&
@@ -1725,10 +1747,10 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
 }
 
 class CoursesCompanion extends UpdateCompanion<CourseRow> {
+  final Value<String> uuid;
   final Value<int> updatedAt;
   final Value<String> deviceId;
   final Value<bool> isDeleted;
-  final Value<int> id;
   final Value<String> name;
   final Value<String?> teacher;
   final Value<String?> room;
@@ -1739,11 +1761,12 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
   final Value<int> durationMinutes;
   final Value<String> colorHex;
   final Value<String> remindersJson;
+  final Value<int> rowid;
   const CoursesCompanion({
+    this.uuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.teacher = const Value.absent(),
     this.room = const Value.absent(),
@@ -1754,12 +1777,13 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     this.durationMinutes = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.remindersJson = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   CoursesCompanion.insert({
+    this.uuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
     required String name,
     this.teacher = const Value.absent(),
     this.room = const Value.absent(),
@@ -1770,15 +1794,16 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     this.durationMinutes = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.remindersJson = const Value.absent(),
+    this.rowid = const Value.absent(),
   }) : name = Value(name),
        weekday = Value(weekday),
        startWeek = Value(startWeek),
        endWeek = Value(endWeek);
   static Insertable<CourseRow> custom({
+    Expression<String>? uuid,
     Expression<int>? updatedAt,
     Expression<String>? deviceId,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
     Expression<String>? name,
     Expression<String>? teacher,
     Expression<String>? room,
@@ -1789,12 +1814,13 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     Expression<int>? durationMinutes,
     Expression<String>? colorHex,
     Expression<String>? remindersJson,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (uuid != null) 'uuid': uuid,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
       if (isDeleted != null) 'is_deleted': isDeleted,
-      if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (teacher != null) 'teacher': teacher,
       if (room != null) 'room': room,
@@ -1805,14 +1831,15 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
       if (durationMinutes != null) 'duration_minutes': durationMinutes,
       if (colorHex != null) 'color_hex': colorHex,
       if (remindersJson != null) 'reminders_json': remindersJson,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   CoursesCompanion copyWith({
+    Value<String>? uuid,
     Value<int>? updatedAt,
     Value<String>? deviceId,
     Value<bool>? isDeleted,
-    Value<int>? id,
     Value<String>? name,
     Value<String?>? teacher,
     Value<String?>? room,
@@ -1823,12 +1850,13 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     Value<int>? durationMinutes,
     Value<String>? colorHex,
     Value<String>? remindersJson,
+    Value<int>? rowid,
   }) {
     return CoursesCompanion(
+      uuid: uuid ?? this.uuid,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
       isDeleted: isDeleted ?? this.isDeleted,
-      id: id ?? this.id,
       name: name ?? this.name,
       teacher: teacher ?? this.teacher,
       room: room ?? this.room,
@@ -1839,12 +1867,16 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
       durationMinutes: durationMinutes ?? this.durationMinutes,
       colorHex: colorHex ?? this.colorHex,
       remindersJson: remindersJson ?? this.remindersJson,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -1853,9 +1885,6 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
-    }
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -1887,16 +1916,19 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     if (remindersJson.present) {
       map['reminders_json'] = Variable<String>(remindersJson.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('CoursesCompanion(')
+          ..write('uuid: $uuid, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('teacher: $teacher, ')
           ..write('room: $room, ')
@@ -1906,7 +1938,8 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
           ..write('startMinutes: $startMinutes, ')
           ..write('durationMinutes: $durationMinutes, ')
           ..write('colorHex: $colorHex, ')
-          ..write('remindersJson: $remindersJson')
+          ..write('remindersJson: $remindersJson, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -1918,6 +1951,16 @@ class $CustomCategoriesTable extends CustomCategories
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $CustomCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: genUuid,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -1956,19 +1999,6 @@ class $CustomCategoriesTable extends CustomCategories
       'CHECK ("is_deleted" IN (0, 1))',
     ),
     defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -2010,10 +2040,10 @@ class $CustomCategoriesTable extends CustomCategories
   );
   @override
   List<GeneratedColumn> get $columns => [
+    uuid,
     updatedAt,
     deviceId,
     isDeleted,
-    id,
     name,
     iconCode,
     type,
@@ -2030,6 +2060,12 @@ class $CustomCategoriesTable extends CustomCategories
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -2047,9 +2083,6 @@ class $CustomCategoriesTable extends CustomCategories
         _isDeletedMeta,
         isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
       );
-    }
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -2077,11 +2110,15 @@ class $CustomCategoriesTable extends CustomCategories
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {uuid};
   @override
   CustomCategoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return CustomCategoryRow(
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -2093,10 +2130,6 @@ class $CustomCategoriesTable extends CustomCategories
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
-      )!,
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
       )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -2121,10 +2154,10 @@ class $CustomCategoriesTable extends CustomCategories
 
 class CustomCategoryRow extends DataClass
     implements Insertable<CustomCategoryRow> {
+  final String uuid;
   final int updatedAt;
   final String deviceId;
   final bool isDeleted;
-  final int id;
   final String name;
 
   /// MaterialIcons 码点（来自内置精选目录）。
@@ -2133,10 +2166,10 @@ class CustomCategoryRow extends DataClass
   /// 'expense' 或 'income'
   final String type;
   const CustomCategoryRow({
+    required this.uuid,
     required this.updatedAt,
     required this.deviceId,
     required this.isDeleted,
-    required this.id,
     required this.name,
     required this.iconCode,
     required this.type,
@@ -2144,10 +2177,10 @@ class CustomCategoryRow extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['uuid'] = Variable<String>(uuid);
     map['updated_at'] = Variable<int>(updatedAt);
     map['device_id'] = Variable<String>(deviceId);
     map['is_deleted'] = Variable<bool>(isDeleted);
-    map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['icon_code'] = Variable<int>(iconCode);
     map['type'] = Variable<String>(type);
@@ -2156,10 +2189,10 @@ class CustomCategoryRow extends DataClass
 
   CustomCategoriesCompanion toCompanion(bool nullToAbsent) {
     return CustomCategoriesCompanion(
+      uuid: Value(uuid),
       updatedAt: Value(updatedAt),
       deviceId: Value(deviceId),
       isDeleted: Value(isDeleted),
-      id: Value(id),
       name: Value(name),
       iconCode: Value(iconCode),
       type: Value(type),
@@ -2172,10 +2205,10 @@ class CustomCategoryRow extends DataClass
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CustomCategoryRow(
+      uuid: serializer.fromJson<String>(json['uuid']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
-      id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       iconCode: serializer.fromJson<int>(json['iconCode']),
       type: serializer.fromJson<String>(json['type']),
@@ -2185,10 +2218,10 @@ class CustomCategoryRow extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'uuid': serializer.toJson<String>(uuid),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'deviceId': serializer.toJson<String>(deviceId),
       'isDeleted': serializer.toJson<bool>(isDeleted),
-      'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'iconCode': serializer.toJson<int>(iconCode),
       'type': serializer.toJson<String>(type),
@@ -2196,28 +2229,28 @@ class CustomCategoryRow extends DataClass
   }
 
   CustomCategoryRow copyWith({
+    String? uuid,
     int? updatedAt,
     String? deviceId,
     bool? isDeleted,
-    int? id,
     String? name,
     int? iconCode,
     String? type,
   }) => CustomCategoryRow(
+    uuid: uuid ?? this.uuid,
     updatedAt: updatedAt ?? this.updatedAt,
     deviceId: deviceId ?? this.deviceId,
     isDeleted: isDeleted ?? this.isDeleted,
-    id: id ?? this.id,
     name: name ?? this.name,
     iconCode: iconCode ?? this.iconCode,
     type: type ?? this.type,
   );
   CustomCategoryRow copyWithCompanion(CustomCategoriesCompanion data) {
     return CustomCategoryRow(
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
-      id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       iconCode: data.iconCode.present ? data.iconCode.value : this.iconCode,
       type: data.type.present ? data.type.value : this.type,
@@ -2227,10 +2260,10 @@ class CustomCategoryRow extends DataClass
   @override
   String toString() {
     return (StringBuffer('CustomCategoryRow(')
+          ..write('uuid: $uuid, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('iconCode: $iconCode, ')
           ..write('type: $type')
@@ -2240,90 +2273,100 @@ class CustomCategoryRow extends DataClass
 
   @override
   int get hashCode =>
-      Object.hash(updatedAt, deviceId, isDeleted, id, name, iconCode, type);
+      Object.hash(uuid, updatedAt, deviceId, isDeleted, name, iconCode, type);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CustomCategoryRow &&
+          other.uuid == this.uuid &&
           other.updatedAt == this.updatedAt &&
           other.deviceId == this.deviceId &&
           other.isDeleted == this.isDeleted &&
-          other.id == this.id &&
           other.name == this.name &&
           other.iconCode == this.iconCode &&
           other.type == this.type);
 }
 
 class CustomCategoriesCompanion extends UpdateCompanion<CustomCategoryRow> {
+  final Value<String> uuid;
   final Value<int> updatedAt;
   final Value<String> deviceId;
   final Value<bool> isDeleted;
-  final Value<int> id;
   final Value<String> name;
   final Value<int> iconCode;
   final Value<String> type;
+  final Value<int> rowid;
   const CustomCategoriesCompanion({
+    this.uuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.iconCode = const Value.absent(),
     this.type = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   CustomCategoriesCompanion.insert({
+    this.uuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
     this.isDeleted = const Value.absent(),
-    this.id = const Value.absent(),
     required String name,
     this.iconCode = const Value.absent(),
     required String type,
+    this.rowid = const Value.absent(),
   }) : name = Value(name),
        type = Value(type);
   static Insertable<CustomCategoryRow> custom({
+    Expression<String>? uuid,
     Expression<int>? updatedAt,
     Expression<String>? deviceId,
     Expression<bool>? isDeleted,
-    Expression<int>? id,
     Expression<String>? name,
     Expression<int>? iconCode,
     Expression<String>? type,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (uuid != null) 'uuid': uuid,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deviceId != null) 'device_id': deviceId,
       if (isDeleted != null) 'is_deleted': isDeleted,
-      if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (iconCode != null) 'icon_code': iconCode,
       if (type != null) 'type': type,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   CustomCategoriesCompanion copyWith({
+    Value<String>? uuid,
     Value<int>? updatedAt,
     Value<String>? deviceId,
     Value<bool>? isDeleted,
-    Value<int>? id,
     Value<String>? name,
     Value<int>? iconCode,
     Value<String>? type,
+    Value<int>? rowid,
   }) {
     return CustomCategoriesCompanion(
+      uuid: uuid ?? this.uuid,
       updatedAt: updatedAt ?? this.updatedAt,
       deviceId: deviceId ?? this.deviceId,
       isDeleted: isDeleted ?? this.isDeleted,
-      id: id ?? this.id,
       name: name ?? this.name,
       iconCode: iconCode ?? this.iconCode,
       type: type ?? this.type,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -2332,9 +2375,6 @@ class CustomCategoriesCompanion extends UpdateCompanion<CustomCategoryRow> {
     }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
-    }
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -2345,19 +2385,721 @@ class CustomCategoriesCompanion extends UpdateCompanion<CustomCategoryRow> {
     if (type.present) {
       map['type'] = Variable<String>(type.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('CustomCategoriesCompanion(')
+          ..write('uuid: $uuid, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deviceId: $deviceId, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('iconCode: $iconCode, ')
-          ..write('type: $type')
+          ..write('type: $type, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AppMetaTable extends AppMeta with TableInfo<$AppMetaTable, AppMetaRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AppMetaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: genUuid,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    clientDefault: dbNowMs,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local'),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _metaKeyMeta = const VerificationMeta(
+    'metaKey',
+  );
+  @override
+  late final GeneratedColumn<String> metaKey = GeneratedColumn<String>(
+    'meta_key',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _metaValueMeta = const VerificationMeta(
+    'metaValue',
+  );
+  @override
+  late final GeneratedColumn<String> metaValue = GeneratedColumn<String>(
+    'meta_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    uuid,
+    updatedAt,
+    deviceId,
+    isDeleted,
+    metaKey,
+    metaValue,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'app_meta';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AppMetaRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('uuid')) {
+      context.handle(
+        _uuidMeta,
+        uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('meta_key')) {
+      context.handle(
+        _metaKeyMeta,
+        metaKey.isAcceptableOrUnknown(data['meta_key']!, _metaKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_metaKeyMeta);
+    }
+    if (data.containsKey('meta_value')) {
+      context.handle(
+        _metaValueMeta,
+        metaValue.isAcceptableOrUnknown(data['meta_value']!, _metaValueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_metaValueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {metaKey};
+  @override
+  AppMetaRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AppMetaRow(
+      uuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uuid'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      metaKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meta_key'],
+      )!,
+      metaValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}meta_value'],
+      )!,
+    );
+  }
+
+  @override
+  $AppMetaTable createAlias(String alias) {
+    return $AppMetaTable(attachedDatabase, alias);
+  }
+}
+
+class AppMetaRow extends DataClass implements Insertable<AppMetaRow> {
+  final String uuid;
+  final int updatedAt;
+  final String deviceId;
+  final bool isDeleted;
+  final String metaKey;
+  final String metaValue;
+  const AppMetaRow({
+    required this.uuid,
+    required this.updatedAt,
+    required this.deviceId,
+    required this.isDeleted,
+    required this.metaKey,
+    required this.metaValue,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['uuid'] = Variable<String>(uuid);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['device_id'] = Variable<String>(deviceId);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['meta_key'] = Variable<String>(metaKey);
+    map['meta_value'] = Variable<String>(metaValue);
+    return map;
+  }
+
+  AppMetaCompanion toCompanion(bool nullToAbsent) {
+    return AppMetaCompanion(
+      uuid: Value(uuid),
+      updatedAt: Value(updatedAt),
+      deviceId: Value(deviceId),
+      isDeleted: Value(isDeleted),
+      metaKey: Value(metaKey),
+      metaValue: Value(metaValue),
+    );
+  }
+
+  factory AppMetaRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AppMetaRow(
+      uuid: serializer.fromJson<String>(json['uuid']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      metaKey: serializer.fromJson<String>(json['metaKey']),
+      metaValue: serializer.fromJson<String>(json['metaValue']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'uuid': serializer.toJson<String>(uuid),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'metaKey': serializer.toJson<String>(metaKey),
+      'metaValue': serializer.toJson<String>(metaValue),
+    };
+  }
+
+  AppMetaRow copyWith({
+    String? uuid,
+    int? updatedAt,
+    String? deviceId,
+    bool? isDeleted,
+    String? metaKey,
+    String? metaValue,
+  }) => AppMetaRow(
+    uuid: uuid ?? this.uuid,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deviceId: deviceId ?? this.deviceId,
+    isDeleted: isDeleted ?? this.isDeleted,
+    metaKey: metaKey ?? this.metaKey,
+    metaValue: metaValue ?? this.metaValue,
+  );
+  AppMetaRow copyWithCompanion(AppMetaCompanion data) {
+    return AppMetaRow(
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      metaKey: data.metaKey.present ? data.metaKey.value : this.metaKey,
+      metaValue: data.metaValue.present ? data.metaValue.value : this.metaValue,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppMetaRow(')
+          ..write('uuid: $uuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('metaKey: $metaKey, ')
+          ..write('metaValue: $metaValue')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(uuid, updatedAt, deviceId, isDeleted, metaKey, metaValue);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppMetaRow &&
+          other.uuid == this.uuid &&
+          other.updatedAt == this.updatedAt &&
+          other.deviceId == this.deviceId &&
+          other.isDeleted == this.isDeleted &&
+          other.metaKey == this.metaKey &&
+          other.metaValue == this.metaValue);
+}
+
+class AppMetaCompanion extends UpdateCompanion<AppMetaRow> {
+  final Value<String> uuid;
+  final Value<int> updatedAt;
+  final Value<String> deviceId;
+  final Value<bool> isDeleted;
+  final Value<String> metaKey;
+  final Value<String> metaValue;
+  final Value<int> rowid;
+  const AppMetaCompanion({
+    this.uuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.metaKey = const Value.absent(),
+    this.metaValue = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AppMetaCompanion.insert({
+    this.uuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String metaKey,
+    required String metaValue,
+    this.rowid = const Value.absent(),
+  }) : metaKey = Value(metaKey),
+       metaValue = Value(metaValue);
+  static Insertable<AppMetaRow> custom({
+    Expression<String>? uuid,
+    Expression<int>? updatedAt,
+    Expression<String>? deviceId,
+    Expression<bool>? isDeleted,
+    Expression<String>? metaKey,
+    Expression<String>? metaValue,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (uuid != null) 'uuid': uuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deviceId != null) 'device_id': deviceId,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (metaKey != null) 'meta_key': metaKey,
+      if (metaValue != null) 'meta_value': metaValue,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AppMetaCompanion copyWith({
+    Value<String>? uuid,
+    Value<int>? updatedAt,
+    Value<String>? deviceId,
+    Value<bool>? isDeleted,
+    Value<String>? metaKey,
+    Value<String>? metaValue,
+    Value<int>? rowid,
+  }) {
+    return AppMetaCompanion(
+      uuid: uuid ?? this.uuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deviceId: deviceId ?? this.deviceId,
+      isDeleted: isDeleted ?? this.isDeleted,
+      metaKey: metaKey ?? this.metaKey,
+      metaValue: metaValue ?? this.metaValue,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (metaKey.present) {
+      map['meta_key'] = Variable<String>(metaKey.value);
+    }
+    if (metaValue.present) {
+      map['meta_value'] = Variable<String>(metaValue.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppMetaCompanion(')
+          ..write('uuid: $uuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('metaKey: $metaKey, ')
+          ..write('metaValue: $metaValue, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncPeersTable extends SyncPeers
+    with TableInfo<$SyncPeersTable, SyncPeerRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncPeersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _peerDeviceIdMeta = const VerificationMeta(
+    'peerDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> peerDeviceId = GeneratedColumn<String>(
+    'peer_device_id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _peerNameMeta = const VerificationMeta(
+    'peerName',
+  );
+  @override
+  late final GeneratedColumn<String> peerName = GeneratedColumn<String>(
+    'peer_name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastSyncAtMeta = const VerificationMeta(
+    'lastSyncAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastSyncAt = GeneratedColumn<int>(
+    'last_sync_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [peerDeviceId, peerName, lastSyncAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_peers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncPeerRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('peer_device_id')) {
+      context.handle(
+        _peerDeviceIdMeta,
+        peerDeviceId.isAcceptableOrUnknown(
+          data['peer_device_id']!,
+          _peerDeviceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_peerDeviceIdMeta);
+    }
+    if (data.containsKey('peer_name')) {
+      context.handle(
+        _peerNameMeta,
+        peerName.isAcceptableOrUnknown(data['peer_name']!, _peerNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_peerNameMeta);
+    }
+    if (data.containsKey('last_sync_at')) {
+      context.handle(
+        _lastSyncAtMeta,
+        lastSyncAt.isAcceptableOrUnknown(
+          data['last_sync_at']!,
+          _lastSyncAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastSyncAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {peerDeviceId};
+  @override
+  SyncPeerRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncPeerRow(
+      peerDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}peer_device_id'],
+      )!,
+      peerName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}peer_name'],
+      )!,
+      lastSyncAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_sync_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncPeersTable createAlias(String alias) {
+    return $SyncPeersTable(attachedDatabase, alias);
+  }
+}
+
+class SyncPeerRow extends DataClass implements Insertable<SyncPeerRow> {
+  final String peerDeviceId;
+  final String peerName;
+  final int lastSyncAt;
+  const SyncPeerRow({
+    required this.peerDeviceId,
+    required this.peerName,
+    required this.lastSyncAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['peer_device_id'] = Variable<String>(peerDeviceId);
+    map['peer_name'] = Variable<String>(peerName);
+    map['last_sync_at'] = Variable<int>(lastSyncAt);
+    return map;
+  }
+
+  SyncPeersCompanion toCompanion(bool nullToAbsent) {
+    return SyncPeersCompanion(
+      peerDeviceId: Value(peerDeviceId),
+      peerName: Value(peerName),
+      lastSyncAt: Value(lastSyncAt),
+    );
+  }
+
+  factory SyncPeerRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncPeerRow(
+      peerDeviceId: serializer.fromJson<String>(json['peerDeviceId']),
+      peerName: serializer.fromJson<String>(json['peerName']),
+      lastSyncAt: serializer.fromJson<int>(json['lastSyncAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'peerDeviceId': serializer.toJson<String>(peerDeviceId),
+      'peerName': serializer.toJson<String>(peerName),
+      'lastSyncAt': serializer.toJson<int>(lastSyncAt),
+    };
+  }
+
+  SyncPeerRow copyWith({
+    String? peerDeviceId,
+    String? peerName,
+    int? lastSyncAt,
+  }) => SyncPeerRow(
+    peerDeviceId: peerDeviceId ?? this.peerDeviceId,
+    peerName: peerName ?? this.peerName,
+    lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+  );
+  SyncPeerRow copyWithCompanion(SyncPeersCompanion data) {
+    return SyncPeerRow(
+      peerDeviceId: data.peerDeviceId.present
+          ? data.peerDeviceId.value
+          : this.peerDeviceId,
+      peerName: data.peerName.present ? data.peerName.value : this.peerName,
+      lastSyncAt: data.lastSyncAt.present
+          ? data.lastSyncAt.value
+          : this.lastSyncAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncPeerRow(')
+          ..write('peerDeviceId: $peerDeviceId, ')
+          ..write('peerName: $peerName, ')
+          ..write('lastSyncAt: $lastSyncAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(peerDeviceId, peerName, lastSyncAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncPeerRow &&
+          other.peerDeviceId == this.peerDeviceId &&
+          other.peerName == this.peerName &&
+          other.lastSyncAt == this.lastSyncAt);
+}
+
+class SyncPeersCompanion extends UpdateCompanion<SyncPeerRow> {
+  final Value<String> peerDeviceId;
+  final Value<String> peerName;
+  final Value<int> lastSyncAt;
+  final Value<int> rowid;
+  const SyncPeersCompanion({
+    this.peerDeviceId = const Value.absent(),
+    this.peerName = const Value.absent(),
+    this.lastSyncAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncPeersCompanion.insert({
+    required String peerDeviceId,
+    required String peerName,
+    required int lastSyncAt,
+    this.rowid = const Value.absent(),
+  }) : peerDeviceId = Value(peerDeviceId),
+       peerName = Value(peerName),
+       lastSyncAt = Value(lastSyncAt);
+  static Insertable<SyncPeerRow> custom({
+    Expression<String>? peerDeviceId,
+    Expression<String>? peerName,
+    Expression<int>? lastSyncAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (peerDeviceId != null) 'peer_device_id': peerDeviceId,
+      if (peerName != null) 'peer_name': peerName,
+      if (lastSyncAt != null) 'last_sync_at': lastSyncAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncPeersCompanion copyWith({
+    Value<String>? peerDeviceId,
+    Value<String>? peerName,
+    Value<int>? lastSyncAt,
+    Value<int>? rowid,
+  }) {
+    return SyncPeersCompanion(
+      peerDeviceId: peerDeviceId ?? this.peerDeviceId,
+      peerName: peerName ?? this.peerName,
+      lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (peerDeviceId.present) {
+      map['peer_device_id'] = Variable<String>(peerDeviceId.value);
+    }
+    if (peerName.present) {
+      map['peer_name'] = Variable<String>(peerName.value);
+    }
+    if (lastSyncAt.present) {
+      map['last_sync_at'] = Variable<int>(lastSyncAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncPeersCompanion(')
+          ..write('peerDeviceId: $peerDeviceId, ')
+          ..write('peerName: $peerName, ')
+          ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -2372,6 +3114,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CustomCategoriesTable customCategories = $CustomCategoriesTable(
     this,
   );
+  late final $AppMetaTable appMeta = $AppMetaTable(this);
+  late final $SyncPeersTable syncPeers = $SyncPeersTable(this);
   late final Index idxAccountsOccurred = Index(
     'idx_accounts_occurred',
     'CREATE INDEX idx_accounts_occurred ON accounts (occurred_at)',
@@ -2405,6 +3149,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     focusSessions,
     courses,
     customCategories,
+    appMeta,
+    syncPeers,
     idxAccountsOccurred,
     idxFocusStart,
     idxCoursesWeekday,
@@ -2413,28 +3159,30 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 }
 
 typedef $$AccountsTableCreateCompanionBuilder = AccountsCompanion Function({
+  Value<String> uuid,
   Value<int> updatedAt,
   Value<String> deviceId,
   Value<bool> isDeleted,
-  Value<int> id,
   required double amount,
   required String type,
   required String category,
   Value<String?> note,
   Value<int> occurredAt,
   Value<int> createdAt,
+  Value<int> rowid,
 });
 typedef $$AccountsTableUpdateCompanionBuilder = AccountsCompanion Function({
+  Value<String> uuid,
   Value<int> updatedAt,
   Value<String> deviceId,
   Value<bool> isDeleted,
-  Value<int> id,
   Value<double> amount,
   Value<String> type,
   Value<String> category,
   Value<String?> note,
   Value<int> occurredAt,
   Value<int> createdAt,
+  Value<int> rowid,
 });
 
 class $$AccountsTableFilterComposer
@@ -2446,6 +3194,11 @@ class $$AccountsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -2458,11 +3211,6 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2506,6 +3254,11 @@ class $$AccountsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -2518,11 +3271,6 @@ class $$AccountsTableOrderingComposer
 
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2566,6 +3314,9 @@ class $$AccountsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
@@ -2574,9 +3325,6 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
-
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
@@ -2630,51 +3378,55 @@ class $$AccountsTableTableManager
               $$AccountsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<String> uuid = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
-                Value<int> id = const Value.absent(),
                 Value<double> amount = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<String> category = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<int> occurredAt = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => AccountsCompanion(
+                uuid: uuid,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
                 isDeleted: isDeleted,
-                id: id,
                 amount: amount,
                 type: type,
                 category: category,
                 note: note,
                 occurredAt: occurredAt,
                 createdAt: createdAt,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
+                Value<String> uuid = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
-                Value<int> id = const Value.absent(),
                 required double amount,
                 required String type,
                 required String category,
                 Value<String?> note = const Value.absent(),
                 Value<int> occurredAt = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => AccountsCompanion.insert(
+                uuid: uuid,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
                 isDeleted: isDeleted,
-                id: id,
                 amount: amount,
                 type: type,
                 category: category,
                 note: note,
                 occurredAt: occurredAt,
                 createdAt: createdAt,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2700,25 +3452,27 @@ typedef $$AccountsTableProcessedTableManager =
     >;
 typedef $$FocusSessionsTableCreateCompanionBuilder =
     FocusSessionsCompanion Function({
+      Value<String> uuid,
       Value<int> updatedAt,
       Value<String> deviceId,
       Value<bool> isDeleted,
-      Value<int> id,
       Value<int> durationSeconds,
       Value<int> startTime,
       required int endTime,
       required String status,
+      Value<int> rowid,
     });
 typedef $$FocusSessionsTableUpdateCompanionBuilder =
     FocusSessionsCompanion Function({
+      Value<String> uuid,
       Value<int> updatedAt,
       Value<String> deviceId,
       Value<bool> isDeleted,
-      Value<int> id,
       Value<int> durationSeconds,
       Value<int> startTime,
       Value<int> endTime,
       Value<String> status,
+      Value<int> rowid,
     });
 
 class $$FocusSessionsTableFilterComposer
@@ -2730,6 +3484,11 @@ class $$FocusSessionsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -2742,11 +3501,6 @@ class $$FocusSessionsTableFilterComposer
 
   ColumnFilters<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2780,6 +3534,11 @@ class $$FocusSessionsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -2792,11 +3551,6 @@ class $$FocusSessionsTableOrderingComposer
 
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2830,6 +3584,9 @@ class $$FocusSessionsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
@@ -2838,9 +3595,6 @@ class $$FocusSessionsTableAnnotationComposer
 
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
-
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<int> get durationSeconds => $composableBuilder(
     column: $table.durationSeconds,
@@ -2888,43 +3642,47 @@ class $$FocusSessionsTableTableManager
               $$FocusSessionsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<String> uuid = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
-                Value<int> id = const Value.absent(),
                 Value<int> durationSeconds = const Value.absent(),
                 Value<int> startTime = const Value.absent(),
                 Value<int> endTime = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => FocusSessionsCompanion(
+                uuid: uuid,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
                 isDeleted: isDeleted,
-                id: id,
                 durationSeconds: durationSeconds,
                 startTime: startTime,
                 endTime: endTime,
                 status: status,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
+                Value<String> uuid = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
-                Value<int> id = const Value.absent(),
                 Value<int> durationSeconds = const Value.absent(),
                 Value<int> startTime = const Value.absent(),
                 required int endTime,
                 required String status,
+                Value<int> rowid = const Value.absent(),
               }) => FocusSessionsCompanion.insert(
+                uuid: uuid,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
                 isDeleted: isDeleted,
-                id: id,
                 durationSeconds: durationSeconds,
                 startTime: startTime,
                 endTime: endTime,
                 status: status,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2952,10 +3710,10 @@ typedef $$FocusSessionsTableProcessedTableManager =
       PrefetchHooks Function()
     >;
 typedef $$CoursesTableCreateCompanionBuilder = CoursesCompanion Function({
+  Value<String> uuid,
   Value<int> updatedAt,
   Value<String> deviceId,
   Value<bool> isDeleted,
-  Value<int> id,
   required String name,
   Value<String?> teacher,
   Value<String?> room,
@@ -2966,12 +3724,13 @@ typedef $$CoursesTableCreateCompanionBuilder = CoursesCompanion Function({
   Value<int> durationMinutes,
   Value<String> colorHex,
   Value<String> remindersJson,
+  Value<int> rowid,
 });
 typedef $$CoursesTableUpdateCompanionBuilder = CoursesCompanion Function({
+  Value<String> uuid,
   Value<int> updatedAt,
   Value<String> deviceId,
   Value<bool> isDeleted,
-  Value<int> id,
   Value<String> name,
   Value<String?> teacher,
   Value<String?> room,
@@ -2982,6 +3741,7 @@ typedef $$CoursesTableUpdateCompanionBuilder = CoursesCompanion Function({
   Value<int> durationMinutes,
   Value<String> colorHex,
   Value<String> remindersJson,
+  Value<int> rowid,
 });
 
 class $$CoursesTableFilterComposer
@@ -2993,6 +3753,11 @@ class $$CoursesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -3005,11 +3770,6 @@ class $$CoursesTableFilterComposer
 
   ColumnFilters<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3073,6 +3833,11 @@ class $$CoursesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -3085,11 +3850,6 @@ class $$CoursesTableOrderingComposer
 
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3153,6 +3913,9 @@ class $$CoursesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
@@ -3161,9 +3924,6 @@ class $$CoursesTableAnnotationComposer
 
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
-
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -3230,10 +3990,10 @@ class $$CoursesTableTableManager
               $$CoursesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<String> uuid = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
-                Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> teacher = const Value.absent(),
                 Value<String?> room = const Value.absent(),
@@ -3244,11 +4004,12 @@ class $$CoursesTableTableManager
                 Value<int> durationMinutes = const Value.absent(),
                 Value<String> colorHex = const Value.absent(),
                 Value<String> remindersJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => CoursesCompanion(
+                uuid: uuid,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
                 isDeleted: isDeleted,
-                id: id,
                 name: name,
                 teacher: teacher,
                 room: room,
@@ -3259,13 +4020,14 @@ class $$CoursesTableTableManager
                 durationMinutes: durationMinutes,
                 colorHex: colorHex,
                 remindersJson: remindersJson,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
+                Value<String> uuid = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
-                Value<int> id = const Value.absent(),
                 required String name,
                 Value<String?> teacher = const Value.absent(),
                 Value<String?> room = const Value.absent(),
@@ -3276,11 +4038,12 @@ class $$CoursesTableTableManager
                 Value<int> durationMinutes = const Value.absent(),
                 Value<String> colorHex = const Value.absent(),
                 Value<String> remindersJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => CoursesCompanion.insert(
+                uuid: uuid,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
                 isDeleted: isDeleted,
-                id: id,
                 name: name,
                 teacher: teacher,
                 room: room,
@@ -3291,6 +4054,7 @@ class $$CoursesTableTableManager
                 durationMinutes: durationMinutes,
                 colorHex: colorHex,
                 remindersJson: remindersJson,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -3316,23 +4080,25 @@ typedef $$CoursesTableProcessedTableManager =
     >;
 typedef $$CustomCategoriesTableCreateCompanionBuilder =
     CustomCategoriesCompanion Function({
+      Value<String> uuid,
       Value<int> updatedAt,
       Value<String> deviceId,
       Value<bool> isDeleted,
-      Value<int> id,
       required String name,
       Value<int> iconCode,
       required String type,
+      Value<int> rowid,
     });
 typedef $$CustomCategoriesTableUpdateCompanionBuilder =
     CustomCategoriesCompanion Function({
+      Value<String> uuid,
       Value<int> updatedAt,
       Value<String> deviceId,
       Value<bool> isDeleted,
-      Value<int> id,
       Value<String> name,
       Value<int> iconCode,
       Value<String> type,
+      Value<int> rowid,
     });
 
 class $$CustomCategoriesTableFilterComposer
@@ -3344,6 +4110,11 @@ class $$CustomCategoriesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -3356,11 +4127,6 @@ class $$CustomCategoriesTableFilterComposer
 
   ColumnFilters<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3389,6 +4155,11 @@ class $$CustomCategoriesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -3401,11 +4172,6 @@ class $$CustomCategoriesTableOrderingComposer
 
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3434,6 +4200,9 @@ class $$CustomCategoriesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
@@ -3442,9 +4211,6 @@ class $$CustomCategoriesTableAnnotationComposer
 
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
-
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -3493,39 +4259,43 @@ class $$CustomCategoriesTableTableManager
               $$CustomCategoriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<String> uuid = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
-                Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> iconCode = const Value.absent(),
                 Value<String> type = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => CustomCategoriesCompanion(
+                uuid: uuid,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
                 isDeleted: isDeleted,
-                id: id,
                 name: name,
                 iconCode: iconCode,
                 type: type,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
+                Value<String> uuid = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
-                Value<int> id = const Value.absent(),
                 required String name,
                 Value<int> iconCode = const Value.absent(),
                 required String type,
+                Value<int> rowid = const Value.absent(),
               }) => CustomCategoriesCompanion.insert(
+                uuid: uuid,
                 updatedAt: updatedAt,
                 deviceId: deviceId,
                 isDeleted: isDeleted,
-                id: id,
                 name: name,
                 iconCode: iconCode,
                 type: type,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -3556,6 +4326,384 @@ typedef $$CustomCategoriesTableProcessedTableManager =
       CustomCategoryRow,
       PrefetchHooks Function()
     >;
+typedef $$AppMetaTableCreateCompanionBuilder = AppMetaCompanion Function({
+  Value<String> uuid,
+  Value<int> updatedAt,
+  Value<String> deviceId,
+  Value<bool> isDeleted,
+  required String metaKey,
+  required String metaValue,
+  Value<int> rowid,
+});
+typedef $$AppMetaTableUpdateCompanionBuilder = AppMetaCompanion Function({
+  Value<String> uuid,
+  Value<int> updatedAt,
+  Value<String> deviceId,
+  Value<bool> isDeleted,
+  Value<String> metaKey,
+  Value<String> metaValue,
+  Value<int> rowid,
+});
+
+class $$AppMetaTableFilterComposer
+    extends Composer<_$AppDatabase, $AppMetaTable> {
+  $$AppMetaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get metaKey => $composableBuilder(
+    column: $table.metaKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get metaValue => $composableBuilder(
+    column: $table.metaValue,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AppMetaTableOrderingComposer
+    extends Composer<_$AppDatabase, $AppMetaTable> {
+  $$AppMetaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get uuid => $composableBuilder(
+    column: $table.uuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get metaKey => $composableBuilder(
+    column: $table.metaKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get metaValue => $composableBuilder(
+    column: $table.metaValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AppMetaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AppMetaTable> {
+  $$AppMetaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get metaKey =>
+      $composableBuilder(column: $table.metaKey, builder: (column) => column);
+
+  GeneratedColumn<String> get metaValue =>
+      $composableBuilder(column: $table.metaValue, builder: (column) => column);
+}
+
+class $$AppMetaTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AppMetaTable,
+          AppMetaRow,
+          $$AppMetaTableFilterComposer,
+          $$AppMetaTableOrderingComposer,
+          $$AppMetaTableAnnotationComposer,
+          $$AppMetaTableCreateCompanionBuilder,
+          $$AppMetaTableUpdateCompanionBuilder,
+          (
+            AppMetaRow,
+            BaseReferences<_$AppDatabase, $AppMetaTable, AppMetaRow>,
+          ),
+          AppMetaRow,
+          PrefetchHooks Function()
+        > {
+  $$AppMetaTableTableManager(_$AppDatabase db, $AppMetaTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AppMetaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AppMetaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AppMetaTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> uuid = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> metaKey = const Value.absent(),
+                Value<String> metaValue = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AppMetaCompanion(
+                uuid: uuid,
+                updatedAt: updatedAt,
+                deviceId: deviceId,
+                isDeleted: isDeleted,
+                metaKey: metaKey,
+                metaValue: metaValue,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> uuid = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String metaKey,
+                required String metaValue,
+                Value<int> rowid = const Value.absent(),
+              }) => AppMetaCompanion.insert(
+                uuid: uuid,
+                updatedAt: updatedAt,
+                deviceId: deviceId,
+                isDeleted: isDeleted,
+                metaKey: metaKey,
+                metaValue: metaValue,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AppMetaTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AppMetaTable,
+      AppMetaRow,
+      $$AppMetaTableFilterComposer,
+      $$AppMetaTableOrderingComposer,
+      $$AppMetaTableAnnotationComposer,
+      $$AppMetaTableCreateCompanionBuilder,
+      $$AppMetaTableUpdateCompanionBuilder,
+      (AppMetaRow, BaseReferences<_$AppDatabase, $AppMetaTable, AppMetaRow>),
+      AppMetaRow,
+      PrefetchHooks Function()
+    >;
+typedef $$SyncPeersTableCreateCompanionBuilder = SyncPeersCompanion Function({
+  required String peerDeviceId,
+  required String peerName,
+  required int lastSyncAt,
+  Value<int> rowid,
+});
+typedef $$SyncPeersTableUpdateCompanionBuilder = SyncPeersCompanion Function({
+  Value<String> peerDeviceId,
+  Value<String> peerName,
+  Value<int> lastSyncAt,
+  Value<int> rowid,
+});
+
+class $$SyncPeersTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncPeersTable> {
+  $$SyncPeersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get peerName => $composableBuilder(
+    column: $table.peerName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncPeersTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncPeersTable> {
+  $$SyncPeersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get peerName => $composableBuilder(
+    column: $table.peerName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncPeersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncPeersTable> {
+  $$SyncPeersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get peerDeviceId => $composableBuilder(
+    column: $table.peerDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get peerName =>
+      $composableBuilder(column: $table.peerName, builder: (column) => column);
+
+  GeneratedColumn<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => column,
+  );
+}
+
+class $$SyncPeersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncPeersTable,
+          SyncPeerRow,
+          $$SyncPeersTableFilterComposer,
+          $$SyncPeersTableOrderingComposer,
+          $$SyncPeersTableAnnotationComposer,
+          $$SyncPeersTableCreateCompanionBuilder,
+          $$SyncPeersTableUpdateCompanionBuilder,
+          (
+            SyncPeerRow,
+            BaseReferences<_$AppDatabase, $SyncPeersTable, SyncPeerRow>,
+          ),
+          SyncPeerRow,
+          PrefetchHooks Function()
+        > {
+  $$SyncPeersTableTableManager(_$AppDatabase db, $SyncPeersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncPeersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncPeersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncPeersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> peerDeviceId = const Value.absent(),
+                Value<String> peerName = const Value.absent(),
+                Value<int> lastSyncAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncPeersCompanion(
+                peerDeviceId: peerDeviceId,
+                peerName: peerName,
+                lastSyncAt: lastSyncAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String peerDeviceId,
+                required String peerName,
+                required int lastSyncAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SyncPeersCompanion.insert(
+                peerDeviceId: peerDeviceId,
+                peerName: peerName,
+                lastSyncAt: lastSyncAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncPeersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncPeersTable,
+      SyncPeerRow,
+      $$SyncPeersTableFilterComposer,
+      $$SyncPeersTableOrderingComposer,
+      $$SyncPeersTableAnnotationComposer,
+      $$SyncPeersTableCreateCompanionBuilder,
+      $$SyncPeersTableUpdateCompanionBuilder,
+      (
+        SyncPeerRow,
+        BaseReferences<_$AppDatabase, $SyncPeersTable, SyncPeerRow>,
+      ),
+      SyncPeerRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3568,4 +4716,8 @@ class $AppDatabaseManager {
       $$CoursesTableTableManager(_db, _db.courses);
   $$CustomCategoriesTableTableManager get customCategories =>
       $$CustomCategoriesTableTableManager(_db, _db.customCategories);
+  $$AppMetaTableTableManager get appMeta =>
+      $$AppMetaTableTableManager(_db, _db.appMeta);
+  $$SyncPeersTableTableManager get syncPeers =>
+      $$SyncPeersTableTableManager(_db, _db.syncPeers);
 }

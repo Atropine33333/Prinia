@@ -54,17 +54,17 @@ class CoursesDao extends DatabaseAccessor<AppDatabase> with _$CoursesDaoMixin {
         .watch();
   }
 
-  Future<int> insertCourse(CoursesCompanion entry) =>
+  Future<void> insertCourse(CoursesCompanion entry) =>
       into(courses).insert(entry);
 
-  Future<void> updateCourse(int id, CoursesCompanion entry) {
-    return (update(courses)..where((t) => t.id.equals(id))).write(
+  Future<void> updateCourse(String uuid, CoursesCompanion entry) {
+    return (update(courses)..where((t) => t.uuid.equals(uuid))).write(
       entry.copyWith(updatedAt: Value(DateTime.now().millisecondsSinceEpoch)),
     );
   }
 
-  Future<void> softDelete(int id) {
-    return (update(courses)..where((t) => t.id.equals(id))).write(
+  Future<void> softDelete(String uuid) {
+    return (update(courses)..where((t) => t.uuid.equals(uuid))).write(
       CoursesCompanion(
         isDeleted: const Value(true),
         updatedAt: Value(DateTime.now().millisecondsSinceEpoch),

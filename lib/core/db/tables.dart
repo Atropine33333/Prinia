@@ -1,6 +1,17 @@
 import 'package:drift/drift.dart';
 
-/// 所有表共用的同步预留列（未来 LWW/CRDT 用）。
+import '../sync/uuid_util.dart';
+
+/// 同步身份列：uuid 全局唯一，跨设备识别同一行。
+mixin SyncUuid on Table {
+  TextColumn get uuid =>
+      text().named('uuid').clientDefault(genUuid)();
+
+  @override
+  Set<Column> get primaryKey => {uuid};
+}
+
+/// 所有表共用的同步预留列（LWW/CRDT 用）。
 mixin SyncColumns on Table {
   IntColumn get updatedAt =>
       integer().named('updated_at').clientDefault(dbNowMs)();
@@ -18,9 +29,7 @@ int dbNowMs() => DateTime.now().millisecondsSinceEpoch;
 /// 记账表。
 @DataClassName('AccountRow')
 @TableIndex(name: 'idx_accounts_occurred', columns: {#occurredAt})
-class Accounts extends Table with SyncColumns {
-  IntColumn get id => integer().autoIncrement()();
-
+class Accounts extends Table with SyncUuid, SyncColumns {
   /// 金额恒为正数，收支由 [type] 区分。
   RealColumn get amount => real()();
 
@@ -44,9 +53,7 @@ class Accounts extends Table with SyncColumns {
 /// 专注记录表（番茄钟）。
 @DataClassName('FocusSessionRow')
 @TableIndex(name: 'idx_focus_start', columns: {#startTime})
-class FocusSessions extends Table with SyncColumns {
-  IntColumn get id => integer().autoIncrement()();
-
+class FocusSessions extends Table with SyncUuid, SyncColumns {
   IntColumn get durationSeconds => integer()
       .named('duration_seconds')
       .clientDefault(() => 0)();
@@ -64,9 +71,7 @@ class FocusSessions extends Table with SyncColumns {
 /// 课程表。
 @DataClassName('CourseRow')
 @TableIndex(name: 'idx_courses_weekday', columns: {#weekday})
-class Courses extends Table with SyncColumns {
-  IntColumn get id => integer().autoIncrement()();
-
+class Courses extends Table with SyncUuid, SyncColumns {
   TextColumn get name => text().withLength(min: 1, max: 64)();
 
   TextColumn get teacher => text().nullable()();
@@ -104,9 +109,7 @@ class Courses extends Table with SyncColumns {
 /// 自定义分类标签（记账用）。
 @DataClassName('CustomCategoryRow')
 @TableIndex(name: 'idx_custom_cat_type', columns: {#type})
-class CustomCategories extends Table with SyncColumns {
-  IntColumn get id => integer().autoIncrement()();
-
+class CustomCategories extends Table with SyncUuid, SyncColumns {
   TextColumn get name => text().withLength(min: 1, max: 16)();
 
   /// MaterialIcons 码点（来自内置精选目录）。
@@ -116,4 +119,30 @@ class CustomCategories extends Table with SyncColumns {
 
   /// 'expense' 或 'income'
   TextColumn get type => text().withLength(min: 1, max: 8)();
+}
+
+/// 可同步的键值元数据（如学期开始日期）。
+@DataClassName('AppMetaRow')
+class AppMeta extends Table with SyncUuid, SyncColumns {
+  TextColumn get metaKey => text().named('meta_key').withLength(min: 1, max: 64)();
+
+  TextColumn get metaValue => text().named('meta_value')();
+
+  @override
+  Set<Column> get primaryKey => {metaKey};
+}
+
+/// 已知同步对端与上次同步时间（本地状态，不参与同步）。
+@DataClassName('SyncPeerRow')
+class SyncPeers extends Table {
+  TextColumn get peerDeviceId =>
+      text().named('peer_device_id').withLength(min: 1, max: 64)();
+
+  TextColumn get peerName =>
+      text().named('peer_name').withLength(min: 1, max: 64)();
+
+  IntColumn get lastSyncAt => integer().named('last_sync_at')();
+
+  @override
+  Set<Column> get primaryKey => {peerDeviceId};
 }

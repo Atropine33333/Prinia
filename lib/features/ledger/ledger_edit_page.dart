@@ -252,7 +252,7 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
     );
 
     if (_isEdit) {
-      await db.accountsDao.updateEntry(widget.existing!.id, companion);
+      await db.accountsDao.updateEntry(widget.existing!.uuid, companion);
     } else {
       await db.accountsDao.insertEntry(companion);
     }
@@ -281,7 +281,7 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
     await ref
         .read(databaseProvider)
         .accountsDao
-        .softDelete(widget.existing!.id);
+        .softDelete(widget.existing!.uuid);
     if (mounted) Navigator.of(context).pop();
   }
 

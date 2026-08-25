@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/db/database.dart';
+import '../../core/sync/uuid_util.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -60,7 +61,7 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     _startMinutes = e?.startMinutes ?? widget.initialHour * 60;
     _durationMinutes = e?.durationMinutes ?? 60;
     _colorHex = e?.colorHex ??
-        coursePalette[(e == null ? widget.initialWeekday : e.id) % coursePalette.length];
+        coursePalette[(e == null ? widget.initialWeekday : e.uuid.hashCode.abs()) % coursePalette.length];
     _reminders = e == null ? [] : parseReminders(e.remindersJson);
   }
 
@@ -340,13 +341,13 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     );
 
     if (_isEdit) {
-      final id = widget.existing!.id;
+      final uuid = widget.existing!.uuid;
       await NotificationService.cancelCourseReminders(
-          id, parseReminders(widget.existing!.remindersJson).length);
-      await db.coursesDao.updateCourse(id, companion);
+          uuid, parseReminders(widget.existing!.remindersJson).length);
+      await db.coursesDao.updateCourse(uuid, companion);
       for (var i = 0; i < _reminders.length; i++) {
         await NotificationService.scheduleCourseReminder(
-          courseId: id,
+          courseKey: uuid,
           reminderIndex: i,
           date: _reminders[i].date,
           text: '${widget.existing!.name}：${_reminders[i].text}',
@@ -355,12 +356,13 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     } else {
       // 多选星期：每天各建一条
       for (final wd in _weekdays) {
-        final id = await db.coursesDao.insertCourse(
-          companion.copyWith(weekday: Value(wd)),
+        final uuid = genUuid();
+        await db.coursesDao.insertCourse(
+          companion.copyWith(weekday: Value(wd), uuid: Value(uuid)),
         );
         for (var i = 0; i < _reminders.length; i++) {
           await NotificationService.scheduleCourseReminder(
-            courseId: id,
+            courseKey: uuid,
             reminderIndex: i,
             date: _reminders[i].date,
             text: _reminders[i].text,
@@ -393,9 +395,9 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     await ref
         .read(databaseProvider)
         .coursesDao
-        .softDelete(widget.existing!.id);
+        .softDelete(widget.existing!.uuid);
     await NotificationService.cancelCourseReminders(
-        widget.existing!.id,
+        widget.existing!.uuid,
         parseReminders(widget.existing!.remindersJson).length + 8);
     if (mounted) Navigator.of(context).pop();
   }

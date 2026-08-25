@@ -18,30 +18,30 @@ class CustomCategoriesDao extends DatabaseAccessor<AppDatabase>
     return (select(customCategories)
           ..where((t) => t.type.equals(type))
           ..where((t) => t.isDeleted.equals(false))
-          ..orderBy([(u) => OrderingTerm.asc(u.id)]))
+          ..orderBy([(u) => OrderingTerm.asc(u.updatedAt)]))
         .watch();
   }
 
   Future<void> insertCategory(CustomCategoriesCompanion entry) =>
       into(customCategories).insert(entry);
 
-  Future<void> updateCategory(int id, CustomCategoriesCompanion entry) {
-    return (update(customCategories)..where((t) => t.id.equals(id))).write(
+  Future<void> updateCategory(String uuid, CustomCategoriesCompanion entry) {
+    return (update(customCategories)..where((t) => t.uuid.equals(uuid))).write(
       entry.copyWith(updatedAt: Value(DateTime.now().millisecondsSinceEpoch)),
     );
   }
 
   Future<bool> nameExists(String name, String type) async {
     final q = selectOnly(customCategories)
-      ..addColumns([customCategories.id])
+      ..addColumns([customCategories.uuid])
       ..where(customCategories.name.equals(name))
       ..where(customCategories.type.equals(type))
       ..where(customCategories.isDeleted.equals(false));
     return await q.getSingleOrNull() != null;
   }
 
-  Future<void> softDelete(int id) {
-    return (update(customCategories)..where((t) => t.id.equals(id))).write(
+  Future<void> softDelete(String uuid) {
+    return (update(customCategories)..where((t) => t.uuid.equals(uuid))).write(
       CustomCategoriesCompanion(
         isDeleted: const Value(true),
         updatedAt: Value(DateTime.now().millisecondsSinceEpoch),

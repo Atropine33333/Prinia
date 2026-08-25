@@ -303,7 +303,7 @@ void showQuickEdit(
 
   bool conflict(int weekday, int startMinutes) {
     for (final o in all) {
-      if (o.id == cur.id || o.isDeleted || o.weekday != weekday) continue;
+      if (o.uuid == cur.uuid || o.isDeleted || o.weekday != weekday) continue;
       if (startMinutes < o.startMinutes + o.durationMinutes &&
           o.startMinutes < startMinutes + cur.durationMinutes) {
         return true;
@@ -326,7 +326,7 @@ void showQuickEdit(
         builder: (ctx, setSheet) {
           Future<void> move(int weekday, int startMinutes) async {
             await dao.updateCourse(
-              cur.id,
+              cur.uuid,
               CoursesCompanion(
                 weekday: Value(weekday),
                 startMinutes: Value(startMinutes),
@@ -413,7 +413,7 @@ void showQuickEdit(
 
 CourseRow _copyWithTime(CourseRow c, int weekday, int startMinutes) {
   return CourseRow(
-    id: c.id,
+    uuid: c.uuid,
     updatedAt: c.updatedAt,
     deviceId: c.deviceId,
     isDeleted: c.isDeleted,

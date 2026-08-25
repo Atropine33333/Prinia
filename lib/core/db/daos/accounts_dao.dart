@@ -29,15 +29,15 @@ class AccountsDao extends DatabaseAccessor<AppDatabase> with _$AccountsDaoMixin 
   Future<void> insertEntry(AccountsCompanion entry) =>
       into(accounts).insert(entry);
 
-  /// 更新并刷新 updated_at（未来 LWW 冲突解决依赖）。
-  Future<void> updateEntry(int id, AccountsCompanion entry) {
-    return (update(accounts)..where((t) => t.id.equals(id))).write(
+  /// 更新并刷新 updated_at（LWW 冲突解决依赖）。
+  Future<void> updateEntry(String uuid, AccountsCompanion entry) {
+    return (update(accounts)..where((t) => t.uuid.equals(uuid))).write(
       entry.copyWith(updatedAt: Value(DateTime.now().millisecondsSinceEpoch)),
     );
   }
 
-  Future<void> softDelete(int id) {
-    return (update(accounts)..where((t) => t.id.equals(id))).write(
+  Future<void> softDelete(String uuid) {
+    return (update(accounts)..where((t) => t.uuid.equals(uuid))).write(
       AccountsCompanion(
         isDeleted: const Value(true),
         updatedAt: Value(DateTime.now().millisecondsSinceEpoch),

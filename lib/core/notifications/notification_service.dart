@@ -92,13 +92,14 @@ class NotificationService {
   ///
   /// [key] 用于稳定生成通知 id（同一课程的提醒增删时先取消旧 id）。
   static Future<void> scheduleCourseReminder({
-    required int courseId,
+    required String courseKey,
     required int reminderIndex,
     required DateTime date,
     required String text,
   }) async {
     await init();
-    final id = _courseReminderBase + courseId * 16 + reminderIndex;
+    final id =
+        _courseReminderBase + (courseKey.hashCode.abs() % 1000000) * 16 + reminderIndex;
     await _plugin.zonedSchedule(
       id,
       '课程提醒',
@@ -114,13 +115,14 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      payload: 'course_$courseId',
+      payload: 'course_$courseKey',
     );
   }
 
-  static Future<void> cancelCourseReminders(int courseId, int count) async {
+  static Future<void> cancelCourseReminders(String courseKey, int count) async {
+    final base = _courseReminderBase + (courseKey.hashCode.abs() % 1000000) * 16;
     for (var i = 0; i < count; i++) {
-      await _plugin.cancel(_courseReminderBase + courseId * 16 + i);
+      await _plugin.cancel(base + i);
     }
   }
 

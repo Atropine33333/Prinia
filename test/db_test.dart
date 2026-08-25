@@ -21,6 +21,7 @@ void main() {
       final helper = AccountsInsertHelper(db);
       await db.accountsDao.insertEntry(
         helper.expense(
+          uuid: 'u-expense',
           amount: 25.5,
           category: '餐饮',
           occurredAt:
@@ -29,6 +30,7 @@ void main() {
       );
       await db.accountsDao.insertEntry(
         helper.income(
+          uuid: 'u-income',
           amount: 100,
           category: '其他',
           occurredAt: monthStart.millisecondsSinceEpoch,
@@ -47,10 +49,10 @@ void main() {
 
     test('软删除后查询不可见', () async {
       final helper = AccountsInsertHelper(db);
-      final id = await db.into(db.accounts).insert(
-            helper.raw(amount: 10, type: 'expense', category: '购物'),
-          );
-      await db.accountsDao.softDelete(id);
+      await db.accountsDao.insertEntry(
+        helper.raw(amount: 10, type: 'expense', category: '购物', uuid: 'u-del'),
+      );
+      await db.accountsDao.softDelete('u-del');
 
       final now = DateTime.now();
       final list = await db.accountsDao.watchMonth(now.year, now.month).first;
@@ -96,7 +98,7 @@ void main() {
       expect(parseReminders(courses.first.remindersJson), hasLength(1));
       expect(parseReminders(courses.first.remindersJson).first.text, '交作业');
 
-      await db.coursesDao.softDelete(courses.first.id);
+      await db.coursesDao.softDelete(courses.first.uuid);
       courses = await db.coursesDao.watchAll().first;
       expect(courses, isEmpty);
     });
@@ -109,12 +111,14 @@ class AccountsInsertHelper {
   AccountsInsertHelper(this.db);
 
   AccountsCompanion expense({
+    required String uuid,
     required double amount,
     required String category,
     int? occurredAt,
     String? note,
   }) =>
       raw(
+        uuid: uuid,
         amount: amount,
         type: 'expense',
         category: category,
@@ -123,13 +127,20 @@ class AccountsInsertHelper {
       );
 
   AccountsCompanion income({
+    required String uuid,
     required double amount,
     required String category,
     int? occurredAt,
   }) =>
-      raw(amount: amount, type: 'income', category: category, occurredAt: occurredAt);
+      raw(
+          uuid: uuid,
+          amount: amount,
+          type: 'income',
+          category: category,
+          occurredAt: occurredAt);
 
   AccountsCompanion raw({
+    required String uuid,
     required double amount,
     required String type,
     required String category,
@@ -137,6 +148,7 @@ class AccountsInsertHelper {
     String? note,
   }) =>
       AccountsCompanion.insert(
+        uuid: Value(uuid),
         amount: amount,
         type: type,
         category: category,

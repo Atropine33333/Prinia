@@ -84,7 +84,7 @@ class _CreateCategorySheetState extends ConsumerState<_CreateCategorySheet> {
                     await ref
                         .read(databaseProvider)
                         .customCategoriesDao
-                        .softDelete(widget.existing!.id);
+                        .softDelete(widget.existing!.uuid);
                     if (context.mounted) Navigator.of(context).pop();
                   },
                 ),
@@ -172,7 +172,7 @@ class _CreateCategorySheetState extends ConsumerState<_CreateCategorySheet> {
     }
     if (_isEdit) {
       await dao.updateCategory(
-        widget.existing!.id,
+        widget.existing!.uuid,
         CustomCategoriesCompanion(
           name: Value(name),
           iconCode: Value(_iconCode),
