@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -171,52 +172,66 @@ class SyncManager extends Notifier<SyncState> {
       return;
     }
 
-    for (final peer in peers) {
+    // 双方同时发起会互相击杀（忙时互关），随机抖动+重试让一方先赢
+    for (var attempt = 1; attempt <= 3; attempt++) {
       if (_busy) return;
-      state = state.copyWith(
-          phase: SyncPhase.connecting, status: '正在连接 ${peer.name}…');
-      int? connId;
-      try {
-        connId = await PriniaBluetooth.connect(peer.address)
-            .timeout(const Duration(seconds: 8));
-      } catch (_) {
-        continue; // 对端不在线/未开应用，试下一个
+      if (attempt > 1) {
+        final delay = Duration(
+            milliseconds: 1500 + Random().nextInt(2000));
+        state = state.copyWith(
+            phase: SyncPhase.listening,
+            status: '对端忙碌，\${delay.inSeconds}s 后重试（\$attempt/3）');
+        await Future<void>.delayed(delay);
       }
+      for (final peer in peers) {
+        if (_busy) return;
+        state = state.copyWith(
+            phase: SyncPhase.connecting,
+            status: '正在连接 \${peer.name}…');
+        int? connId;
+        try {
+          connId = await PriniaBluetooth.connect(peer.address)
+              .timeout(const Duration(seconds: 8));
+        } catch (_) {
+          continue; // 对端不在线/未开应用，试下一个
+        }
 
-      // 等待期间对端已连入并开跑会话：放弃本次出站，避免双会话
-      if (_busy) {
-        await PriniaBluetooth.closeConn(connId);
-        return;
-      }
-      _busy = true;
-      state = state.copyWith(
-          phase: SyncPhase.syncing, status: '已连接 ${peer.name}，正在同步…');
-      final channel = BtSyncChannel.forConnection(connId);
-      try {
-        final engine = SyncEngine(
-          db: ref.read(databaseProvider),
-          myDeviceId: DeviceIdentity.current,
-          myDeviceName: DeviceIdentity.name,
-          onStatus: (s) => state = state.copyWith(status: s),
-        );
-        final result = await engine.run(channel);
+        // 等待期间对端已连入并开跑会话：放弃本次出站，避免双会话
+        if (_busy) {
+          await PriniaBluetooth.closeConn(connId);
+          return;
+        }
+        _busy = true;
         state = state.copyWith(
-          phase: SyncPhase.listening,
-          status: result.toString(),
-          lastPeerName: result.peerName,
-          lastSyncAt: DateTime.now(),
-        );
-      } catch (err) {
-        state = state.copyWith(
-          phase: SyncPhase.listening,
-          status: '同步失败',
-          lastError: err.toString(),
-        );
-      } finally {
-        await channel.close();
-        _busy = false;
+            phase: SyncPhase.syncing,
+            status: '已连接 \${peer.name}，正在同步…');
+        final channel = BtSyncChannel.forConnection(connId);
+        try {
+          final engine = SyncEngine(
+            db: ref.read(databaseProvider),
+            myDeviceId: DeviceIdentity.current,
+            myDeviceName: DeviceIdentity.name,
+            onStatus: (s) => state = state.copyWith(status: s),
+          );
+          final result = await engine.run(channel);
+          state = state.copyWith(
+            phase: SyncPhase.listening,
+            status: result.toString(),
+            lastPeerName: result.peerName,
+            lastSyncAt: DateTime.now(),
+          );
+        } catch (err) {
+          state = state.copyWith(
+            phase: SyncPhase.listening,
+            status: '同步失败',
+            lastError: err.toString(),
+          );
+        } finally {
+          await channel.close();
+          _busy = false;
+        }
+        return; // 会话结束（成功或失败）本轮即止，保持监听
       }
-      return; // 一次连接成功即完成本轮
     }
 
     state = state.copyWith(
