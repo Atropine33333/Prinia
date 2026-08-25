@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../shared/responsive.dart';
 import '../../core/theme/presets.dart';
 import '../../core/theme/theme_controller.dart';
 
@@ -47,7 +48,8 @@ class _ThemeEditorPageState extends ConsumerState<ThemeEditorPage> {
     final colors = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
       appBar: AppBar(title: const Text('自定义配色板')),
-      body: ListView(
+      body: ResponsiveFormBox(
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
@@ -122,6 +124,7 @@ class _ThemeEditorPageState extends ConsumerState<ThemeEditorPage> {
             child: const Text('保存配色板', style: TextStyle(fontSize: 16)),
           ),
         ],
+      ),
       ),
     );
   }

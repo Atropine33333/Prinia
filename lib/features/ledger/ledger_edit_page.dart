@@ -7,6 +7,7 @@ import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/icons/app_icon_view.dart';
 import '../../core/theme/app_colors.dart';
+import '../../shared/responsive.dart';
 import 'create_category_sheet.dart';
 import 'ledger_categories_provider.dart';
 import 'ledger_providers.dart';
@@ -94,7 +95,8 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
             ),
         ],
       ),
-      body: ListView(
+      body: ResponsiveFormBox(
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           SegmentedButton<String>(
@@ -202,6 +204,7 @@ class _LedgerEditPageState extends ConsumerState<LedgerEditPage> {
                 style: const TextStyle(fontSize: 16)),
           ),
         ],
+      ),
       ),
     );
   }

@@ -8,6 +8,7 @@ import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/presets.dart';
 import '../../core/theme/theme_controller.dart';
+import '../../shared/responsive.dart';
 import '../timetable/timetable_providers.dart';
 import 'theme_editor_page.dart';
 
@@ -86,7 +87,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
-      body: ListView(
+      body: ResponsiveFormBox(
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ── 主题 ──
@@ -255,6 +257,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onTap: () => _confirmClearData(colors),
           ),
         ],
+      ),
       ),
     );
   }
