@@ -83,8 +83,8 @@ class AppShellState extends State<AppShell> {
             children: [
               NavigationRail(
                 backgroundColor: colors.surface,
-                groupAlignment: -1,
-                labelType: NavigationRailLabelType.all,
+                groupAlignment: 1,
+                labelType: NavigationRailLabelType.selected,
                 selectedIndex: _railIndex,
                 onDestinationSelected: (i) =>
                     setState(() => _railIndex = i),
