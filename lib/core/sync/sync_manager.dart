@@ -180,7 +180,7 @@ class SyncManager extends Notifier<SyncState> {
             milliseconds: 1500 + Random().nextInt(2000));
         state = state.copyWith(
             phase: SyncPhase.listening,
-            status: '对端忙碌，\${delay.inSeconds}s 后重试（\$attempt/3）');
+            status: '对端忙碌，${delay.inSeconds}s 后重试（$attempt/3）');
         await Future<void>.delayed(delay);
       }
       for (final peer in peers) {
