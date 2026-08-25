@@ -49,6 +49,7 @@ class SyncManager extends Notifier<SyncState> {
   StreamSubscription<BtEvent>? _eventSub;
   StreamSubscription<Set<TableUpdate>>? _dbSub;
   Timer? _debounce;
+  DateTime _nextRoundAllowed = DateTime.fromMillisecondsSinceEpoch(0);
   bool _busy = false; // 正在跑会话
   bool _started = false;
 
@@ -94,6 +95,7 @@ class SyncManager extends Notifier<SyncState> {
     final maxTs = await db.maxUpdatedAt();
     final pending = peers.any((p) => maxTs > p.lastSyncAt);
     if (!pending) return;
+    if (DateTime.now().isBefore(_nextRoundAllowed)) return; // 冷却中
     await _begin(manual: true);
   }
 
@@ -146,7 +148,7 @@ class SyncManager extends Notifier<SyncState> {
     }
 
     // 尝试主动连接已知对端（对端应用已打开即会命中）
-    await _connectKnownPeers();
+    await _connectKnownPeers(force: manual);
   }
 
   // ── 事件路由 ────────────────────────────────────────────────
@@ -199,8 +201,21 @@ class SyncManager extends Notifier<SyncState> {
 
   // ── 主动连接 ────────────────────────────────────────────────
 
-  Future<void> _connectKnownPeers() async {
+  /// 一轮遍历所有已配对对端，逐个同步（每对独立游标）。
+  /// [force] 跳过冷却（手动触发）。
+  Future<void> _connectKnownPeers({bool force = false}) async {
     if (_busy) return;
+    final db = ref.read(databaseProvider);
+    final maxTs = await db.maxUpdatedAt();
+    final peerRows = await db.select(db.syncPeers).get();
+    final allUpToDate =
+        peerRows.isNotEmpty && peerRows.every((p) => p.lastSyncAt >= maxTs);
+    // 冷却期内且无新编辑：不空转（对端离线时的防循环）
+    if (!force &&
+        (allUpToDate || DateTime.now().isBefore(_nextRoundAllowed))) {
+      return;
+    }
+
     final peers = await PriniaBluetooth.bondedDevices();
     if (peers.isEmpty) {
       state = state.copyWith(
@@ -209,12 +224,14 @@ class SyncManager extends Notifier<SyncState> {
       return;
     }
 
+    var anyConnectFailed = false;
+
     // 双方同时发起会互相击杀（忙时互关），随机抖动+重试让一方先赢
     for (var attempt = 1; attempt <= 3; attempt++) {
       if (_busy) return;
       if (attempt > 1) {
-        final delay = Duration(
-            milliseconds: 1500 + Random().nextInt(2000));
+        final delay =
+            Duration(milliseconds: 1500 + Random().nextInt(2000));
         state = state.copyWith(
             phase: SyncPhase.listening,
             status: '对端忙碌，${delay.inSeconds}s 后重试（$attempt/3）');
@@ -224,12 +241,13 @@ class SyncManager extends Notifier<SyncState> {
         if (_busy) return;
         state = state.copyWith(
             phase: SyncPhase.connecting,
-            status: '正在连接 \${peer.name}…');
+            status: '正在连接 ${peer.name}…');
         int? connId;
         try {
           connId = await PriniaBluetooth.connect(peer.address)
               .timeout(const Duration(seconds: 8));
         } catch (_) {
+          anyConnectFailed = true;
           continue; // 对端不在线/未开应用，试下一个
         }
 
@@ -241,7 +259,7 @@ class SyncManager extends Notifier<SyncState> {
         _busy = true;
         state = state.copyWith(
             phase: SyncPhase.syncing,
-            status: '已连接 \${peer.name}，正在同步…');
+            status: '已连接 ${peer.name}，正在同步…');
         final channel = BtSyncChannel.forConnection(connId);
         try {
           final engine = SyncEngine(
@@ -267,12 +285,17 @@ class SyncManager extends Notifier<SyncState> {
           await channel.close();
           _busy = false;
         }
-        return; // 会话结束（成功或失败）本轮即止，保持监听
+        // 不 return：继续本轮剩余对端（多设备接力）
       }
+      break; // 一轮完成
     }
 
-    state = state.copyWith(
-        phase: SyncPhase.listening, status: '对端均不在线，保持同步准备');
+    // 有对端没连上（离线）：设置冷却，防止空会话循环
+    if (anyConnectFailed) {
+      _nextRoundAllowed = DateTime.now().add(const Duration(seconds: 30));
+    }
+    // 轮次结束后补检一次（会话期间的新编辑）
+    _debounce = Timer(const Duration(seconds: 2), () => _maybeSync());
   }
 }
 
