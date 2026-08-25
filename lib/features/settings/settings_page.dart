@@ -6,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/sync/device_identity.dart';
+import '../../core/sync/bluetooth_transport.dart';
 import '../../core/sync/sync_manager.dart';
+import '../../core/sync/sync_targets.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/presets.dart';
 import '../../core/theme/theme_controller.dart';
@@ -264,6 +266,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     style: TextStyle(color: colors.textMuted, fontSize: 12),
                   ),
                 ),
+                _SyncDevicePicker(colors: colors),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text('本机设备名',
@@ -382,6 +385,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const SnackBar(content: Text('已清除')),
       );
     }
+  }
+}
+
+/// 已配对设备勾选列表：勾选者参与同步轮询。
+class _SyncDevicePicker extends ConsumerStatefulWidget {
+  final AppColors colors;
+  const _SyncDevicePicker({required this.colors});
+
+  @override
+  ConsumerState<_SyncDevicePicker> createState() => _SyncDevicePickerState();
+}
+
+class _SyncDevicePickerState extends ConsumerState<_SyncDevicePicker> {
+  List<({String address, String name})>? _bonded;
+
+  @override
+  void initState() {
+    super.initState();
+    PriniaBluetooth.bondedDevices().then((list) {
+      if (mounted) setState(() => _bonded = list);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selection = ref.watch(syncTargetsProvider);
+    final bonded = _bonded ?? const [];
+    if (bonded.isEmpty) {
+      return Text('未检测到已配对蓝牙设备',
+          style: TextStyle(fontSize: 12, color: widget.colors.textMuted));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('参与同步的设备（未勾选的不参与轮询）',
+            style: TextStyle(fontSize: 12, color: widget.colors.textMuted)),
+        for (final d in bonded)
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: Text(d.name,
+                style: TextStyle(fontSize: 14, color: widget.colors.text)),
+            subtitle: Text(d.address,
+                style:
+                    TextStyle(fontSize: 11, color: widget.colors.textMuted)),
+            value: SyncTargetsController.isSelected(selection, d.address),
+            onChanged: (_) => ref
+                .read(syncTargetsProvider.notifier)
+                .toggle(d.address, [for (final x in bonded) x.address]),
+            activeColor: widget.colors.primary,
+          ),
+      ],
+    );
   }
 }
 

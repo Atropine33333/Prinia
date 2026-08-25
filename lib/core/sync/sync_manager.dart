@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'bluetooth_transport.dart';
 import 'device_identity.dart';
+import 'sync_targets.dart';
 import 'sync_engine.dart';
 import '../db/db_provider.dart';
 
@@ -216,11 +217,16 @@ class SyncManager extends Notifier<SyncState> {
       return;
     }
 
-    final peers = await PriniaBluetooth.bondedDevices();
+    final allBonded = await PriniaBluetooth.bondedDevices();
+    final selection = ref.read(syncTargetsProvider);
+    // 只轮询用户勾选的设备；未配置时全部参与
+    final peers = selection.isEmpty
+        ? allBonded
+        : allBonded.where((d) => selection.contains(d.address)).toList();
     if (peers.isEmpty) {
       state = state.copyWith(
           phase: SyncPhase.listening,
-          status: '尚无已配对设备，请在系统蓝牙中配对');
+          status: '未选择同步设备，请在设置中勾选');
       return;
     }
 
