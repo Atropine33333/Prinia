@@ -7,6 +7,7 @@ import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../shared/responsive.dart';
 import 'timetable_providers.dart';
 
 /// 课程卡片预设色（低饱和 Morandi）。
@@ -77,7 +78,8 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
             ),
         ],
       ),
-      body: ListView(
+      body: ResponsiveFormBox(
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
@@ -268,6 +270,7 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
                 style: const TextStyle(fontSize: 16)),
           ),
         ],
+      ),
       ),
     );
   }

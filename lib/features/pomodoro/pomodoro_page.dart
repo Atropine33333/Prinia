@@ -96,9 +96,11 @@ class _TimerView extends ConsumerWidget {
               ),
             const SizedBox(height: 24),
             // 环形进度 + 中央时间（无动画）
-            SizedBox(
-              width: 280,
-              height: 280,
+            LayoutBuilder(builder: (ctx, box) {
+              final ringSize = box.maxWidth >= 700 ? 340.0 : 280.0;
+              return SizedBox(
+              width: ringSize,
+              height: ringSize,
               child: RingProgress(
                 fraction: state.elapsedFraction,
                 breathing: false,
@@ -130,7 +132,8 @@ class _TimerView extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
+              );
+            }),
             const SizedBox(height: 16),
             // 溜号提示
             if (state.comebackNotice)

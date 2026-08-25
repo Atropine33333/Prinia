@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/db/daos/accounts_dao.dart';
+import '../../shared/responsive.dart';
 import '../../core/icons/app_icon_view.dart';
 import '../../app/app_shell.dart';
 import '../../core/theme/app_colors.dart';
@@ -250,117 +251,143 @@ class _StatsViewState extends ConsumerState<_StatsView> {
     final daily = ref.watch(dailyExpenseProvider);
     final categories = ref.watch(categoryTotalsProvider);
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // 收支结余卡片
-        summary.when(
-          loading: () => const SizedBox(),
-          error: (e, _) => Text('汇总失败：$e'),
-          data: (s) => Card(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              child: Row(
-                children: [
-                  Expanded(child: _StatCol('支出', s.expense)),
-                  VerticalDivider(color: colors.border),
-                  Expanded(child: _StatCol('收入', s.income)),
-                  VerticalDivider(color: colors.border),
-                  Expanded(
-                    child: _StatCol('结余', s.balance,
-                        color: s.balance >= 0 ? colors.primary : colors.error),
-                  ),
-                ],
+    final summaryCard = summary.when(
+      loading: () => const SizedBox(),
+      error: (e, _) => Text('汇总失败：\$e'),
+      data: (s) => Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: Row(
+            children: [
+              Expanded(child: _StatCol('支出', s.expense)),
+              VerticalDivider(color: colors.border),
+              Expanded(child: _StatCol('收入', s.income)),
+              VerticalDivider(color: colors.border),
+              Expanded(
+                child: _StatCol('结余', s.balance,
+                    color: s.balance >= 0 ? colors.primary : colors.error),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        // 每日支出柱状图
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('每日支出',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: colors.text)),
-                const SizedBox(height: 8),
-                daily.when(
-                  loading: () => const SizedBox(
-                      height: 120,
-                      child: Center(child: CircularProgressIndicator())),
-                  error: (e, _) => Text('$e'),
-                  data: (m) => ExpenseBarChart(
-                    data: m,
-                    selectedDay: _barSelectedDay,
-                    onDayChanged: (d) => setState(() {
-                      _barSelectedDay = d;
-                      ref.read(selectedStatsDayProvider.notifier).state = d;
-                    }),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        // 分类占比饼图（点击卡片回到月总览）
-        Card(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _barSelectedDay == null
-                ? null
-                : () => setState(() {
-                      _barSelectedDay = null;
-                      ref.read(selectedStatsDayProvider.notifier).state = null;
-                    }),
-            child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      ref.watch(selectedStatsDayProvider) == null
-                          ? '分类占比 · 本月'
-                          : '分类占比 · ${ref.watch(selectedStatsDayProvider)}日',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: colors.text),
-                    ),
-                    const Spacer(),
-                    if (ref.watch(selectedStatsDayProvider) != null)
-                      Text('点此返回月总览',
-                          style: TextStyle(
-                              fontSize: 11, color: colors.textMuted)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                categories.maybeWhen(
-                  loading: () => const SizedBox(height: 160),
-                  orElse: () => categories.value == null ||
-                          categories.value!.isEmpty
-                      ? SizedBox(
-                          height: 80,
-                          child: Center(
-                            child: Text('暂无支出数据',
-                                style: TextStyle(color: colors.textMuted)),
-                          ),
-                        )
-                      : _PieWithLegend(totals: categories.value!),
-                ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
-      ],
+    );
+
+    final barCard = Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('每日支出',
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colors.text)),
+            const SizedBox(height: 8),
+            daily.when(
+              loading: () => const SizedBox(
+                  height: 120,
+                  child: Center(child: CircularProgressIndicator())),
+              error: (e, _) => Text('\$e'),
+              data: (m) => ExpenseBarChart(
+                data: m,
+                selectedDay: _barSelectedDay,
+                onDayChanged: (d) => setState(() {
+                  _barSelectedDay = d;
+                  ref.read(selectedStatsDayProvider.notifier).state = d;
+                }),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final pieCard = Card(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _barSelectedDay == null
+            ? null
+            : () => setState(() {
+                  _barSelectedDay = null;
+                  ref.read(selectedStatsDayProvider.notifier).state = null;
+                }),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    ref.watch(selectedStatsDayProvider) == null
+                        ? '分类占比 · 本月'
+                        : '分类占比 · \${ref.watch(selectedStatsDayProvider)}日',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: colors.text),
+                  ),
+                  const Spacer(),
+                  if (ref.watch(selectedStatsDayProvider) != null)
+                    Text('点此返回月总览',
+                        style:
+                            TextStyle(fontSize: 11, color: colors.textMuted)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              categories.maybeWhen(
+                loading: () => const SizedBox(height: 160),
+                orElse: () => categories.value == null ||
+                        categories.value!.isEmpty
+                    ? SizedBox(
+                        height: 80,
+                        child: Center(
+                          child: Text('暂无支出数据',
+                              style: TextStyle(color: colors.textMuted)),
+                        ),
+                      )
+                    : _PieWithLegend(totals: categories.value!),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return ResponsiveFormBox(
+      maxWidth: 1100,
+      child: LayoutBuilder(builder: (ctx, box) {
+        final wide = box.maxWidth >= 700;
+        final children = wide
+            ? [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          summaryCard,
+                          const SizedBox(height: 16),
+                          barCard,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(child: pieCard),
+                  ],
+                ),
+              ]
+            : [
+                summaryCard,
+                const SizedBox(height: 16),
+                barCard,
+                const SizedBox(height: 16),
+                pieCard,
+              ];
+        return ListView(padding: const EdgeInsets.all(16), children: children);
+      }),
     );
   }
 }
