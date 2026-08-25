@@ -191,12 +191,14 @@ class MainActivity : FlutterActivity() {
         if (!adapter.isEnabled) throw IOException("蓝牙未开启")
         if (serverRunning) return
         serverRunning = true
+        Log.i(TAG, "server started")
         Thread {
             try {
                 serverSocket = adapter.listenUsingRfcommWithServiceRecord("PriniaSync", SYNC_UUID)
                 while (serverRunning) {
                     val sock = try { serverSocket!!.accept() } catch (_: IOException) { break }
                     if (!serverRunning) { try { sock.close() } catch (_: IOException) {} ; break }
+                    Log.i(TAG, "server accepted connection")
                     registerConnection(sock, incoming = true)
                 }
             } catch (e: Exception) {
@@ -232,6 +234,7 @@ class MainActivity : FlutterActivity() {
         val id = connId.incrementAndGet()
         connections[id] = sock
         val name = try { sock.remoteDevice.name } catch (_: SecurityException) { null }
+        Log.i(TAG, "connection opened id=\$id incoming=\$incoming name=\$name")
         emit(mapOf(
             "event" to "opened",
             "id" to id,
@@ -253,6 +256,7 @@ class MainActivity : FlutterActivity() {
                 }
             } catch (_: IOException) {}
             connections.remove(id)
+            Log.i(TAG, "connection closed id=\$id")
             emit(mapOf("event" to "closed", "id" to id))
         }.start()
         return id

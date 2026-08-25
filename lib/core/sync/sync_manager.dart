@@ -119,7 +119,12 @@ class SyncManager extends Notifier<SyncState> {
   }
 
   Future<void> _onEvent(BtEvent e) async {
-    if (e.type == 'opened' && e.incoming && !_busy) {
+    if (e.type == 'opened' && e.incoming) {
+      if (_busy) {
+        // 已有会话在跑：立即关闭，让对端快速失败后重试
+        await PriniaBluetooth.closeConn(e.id);
+        return;
+      }
       // 对端主动连入 → 直接开跑会话
       _busy = true;
       state = state.copyWith(
@@ -178,6 +183,11 @@ class SyncManager extends Notifier<SyncState> {
         continue; // 对端不在线/未开应用，试下一个
       }
 
+      // 等待期间对端已连入并开跑会话：放弃本次出站，避免双会话
+      if (_busy) {
+        await PriniaBluetooth.closeConn(connId);
+        return;
+      }
       _busy = true;
       state = state.copyWith(
           phase: SyncPhase.syncing, status: '已连接 ${peer.name}，正在同步…');
