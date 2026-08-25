@@ -433,13 +433,7 @@ CourseRow _copyWithTime(CourseRow c, int weekday, int startMinutes) {
 String _fmtMin(int m) =>
     '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
 
-String _durText(int minutes) {
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  if (h == 0) return '$m 分钟';
-  if (m == 0) return '$h 小时';
-  return '$h 小时 $m 分钟';
-}
+String _durText(int minutes) => '$minutes 分钟';
 
 class _QuickBtn extends StatelessWidget {
   final IconData icon;
