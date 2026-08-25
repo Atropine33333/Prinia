@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'bluetooth_transport.dart';
 import 'device_identity.dart';
 import 'sync_engine.dart';
-import '../db/database.dart';
 import '../db/db_provider.dart';
 
 enum SyncPhase { off, starting, listening, connecting, syncing }

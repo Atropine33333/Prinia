@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
-import '../../core/db/daos/courses_dao.dart';
 import '../../core/sync/device_identity.dart';
 
 export '../../core/db/daos/courses_dao.dart'
