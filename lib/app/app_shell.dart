@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/sync/device_identity.dart';
+import '../../core/update/update_service.dart';
 import '../../core/sync/sync_manager.dart';
 import '../../core/theme/app_colors.dart';
 import '../features/ledger/ledger_page.dart';
@@ -32,6 +33,12 @@ class AppShellState extends ConsumerState<AppShell> {
     DeviceIdentity.load().then((_) {
       if (mounted) {
         ref.read(syncManagerProvider.notifier).autoStart();
+      }
+    });
+    // 每天首次打开检查更新
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        UpdateService.autoCheckOnStartup(context);
       }
     });
   }

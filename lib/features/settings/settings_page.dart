@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/sync/device_identity.dart';
+import '../../core/update/update_service.dart';
 import '../../core/sync/bluetooth_transport.dart';
 import '../../core/sync/sync_manager.dart';
 import '../../core/sync/sync_targets.dart';
@@ -329,6 +330,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 style: TextStyle(color: colors.text, fontSize: 15)),
             subtitle: Text('1.1.0',
                 style: TextStyle(color: colors.textMuted, fontSize: 12)),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('检查更新',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            subtitle: Text('从 GitHub 获取最新版本（默认下载 arm64-v8a 包）',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+            trailing: Icon(Icons.chevron_right, color: colors.textMuted),
+            onTap: () => UpdateService.manualCheck(context),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,

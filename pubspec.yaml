@@ -38,6 +38,9 @@ dependencies:
   # 高刷新率（120fps，不支持时系统回退）
   flutter_displaymode: ^0.6.0
 
+  # 应用内更新（下载 APK 后拉起安装）
+  open_filex: ^4.7.0
+
 
 dev_dependencies:
   flutter_test:
