@@ -314,7 +314,7 @@ class _DayGroup extends StatefulWidget {
   final List<FocusSessionRow> rows;
   final bool initiallyExpanded;
   const _DayGroup(
-      {super.key, required this.day, required this.rows, this.initiallyExpanded = true});
+      {required this.day, required this.rows, this.initiallyExpanded = true});
 
   @override
   State<_DayGroup> createState() => _DayGroupState();
