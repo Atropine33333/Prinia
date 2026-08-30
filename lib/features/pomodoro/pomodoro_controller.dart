@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/platform/screen_state.dart';
 
 /// 番茄钟阶段：专注 <-> 休息 循环。
 enum PomodoroPhase { idle, focusing, focusPaused, resting, restPaused }
@@ -258,10 +259,16 @@ class PomodoroController extends Notifier<PomodoroState>
 
   void _onAppHide() {
     if (state.phase == PomodoroPhase.focusing) {
-      // 专注时溜号：停表 + 立即通知
-      _cancelTicker();
-      state = state.copyWith(phase: PomodoroPhase.focusPaused);
-      NotificationService.showPomodoro('快回来——(╬▔皿▔)╯', payload: 'pomodoro_back');
+      // 息屏不算溜号：屏幕点亮才判定为切换应用
+      unawaited(() async {
+        final screenOn = await ScreenState.isInteractive();
+        if (!screenOn) return; // 息屏：继续计时
+        if (state.phase != PomodoroPhase.focusing) return;
+        _cancelTicker();
+        state = state.copyWith(phase: PomodoroPhase.focusPaused);
+        NotificationService.showPomodoro('快回来——(╬▔皿▔)╯',
+            payload: 'pomodoro_back');
+      }());
     } else if (state.phase == PomodoroPhase.resting) {
       // 休息时溜号：继续计时，预约剩 1 分钟的通知
       final remainAtNotify = state.remainingSeconds - 60;

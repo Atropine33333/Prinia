@@ -218,6 +218,23 @@ void main() {
       expect(changes.map((e) => e['uuid']), ['new']);
     });
 
+    test('自定义标签行往返（含猫猫码点）', () async {
+      await a.into(a.customCategories).insert(CustomCategoriesCompanion.insert(
+            uuid: const Value('tag-1'),
+            name: '猫粮',
+            iconCode: const Value(-1), // 猫猫头
+            type: 'expense',
+            updatedAt: const Value(1000),
+          ));
+
+      await pushAToB(0, adaptersA, adaptersB);
+
+      final row = await (b.select(b.customCategories)).getSingle();
+      expect(row.name, '猫粮');
+      expect(row.iconCode, -1);
+      expect(row.type, 'expense');
+    });
+
     test('课程行全字段往返', () async {
       await a.into(a.courses).insert(CoursesCompanion.insert(
             uuid: const Value('course-1'),

@@ -68,6 +68,10 @@ class MainActivity : FlutterActivity() {
                 try {
                     when (call.method) {
                         "isOn" -> result.success(btAdapter?.isEnabled == true)
+                        "isScreenOn" -> {
+                            val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+                            result.success(pm.isInteractive)
+                        }
                         "myName" -> result.success(btAdapter?.name ?: "")
                         "requestEnable" -> {
                             val adapter = btAdapter

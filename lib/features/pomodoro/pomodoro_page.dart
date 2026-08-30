@@ -309,14 +309,25 @@ class _StatsView extends ConsumerWidget {
   }
 }
 
-class _DayGroup extends StatelessWidget {
+class _DayGroup extends StatefulWidget {
   final DateTime day;
   final List<FocusSessionRow> rows;
-  const _DayGroup({required this.day, required this.rows});
+  final bool initiallyExpanded;
+  const _DayGroup(
+      {super.key, required this.day, required this.rows, this.initiallyExpanded = true});
+
+  @override
+  State<_DayGroup> createState() => _DayGroupState();
+}
+
+class _DayGroupState extends State<_DayGroup> {
+  late bool _expanded = widget.initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final day = widget.day;
+    final rows = widget.rows;
     final now = DateTime.now();
     final isToday = day.year == now.year &&
         day.month == now.month &&
@@ -327,7 +338,10 @@ class _DayGroup extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => setState(() => _expanded = !_expanded),
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,9 +356,17 @@ class _DayGroup extends StatelessWidget {
                 const Spacer(),
                 Text('$totalMin 分钟',
                     style: TextStyle(color: colors.primary, fontSize: 13)),
+                const SizedBox(width: 4),
+                AnimatedRotation(
+                  turns: _expanded ? 0.0 : -0.25,
+                  duration: const Duration(milliseconds: 150),
+                  child: Icon(Icons.expand_more,
+                      size: 20, color: colors.textMuted),
+                ),
               ],
             ),
             const Divider(height: 16),
+            if (_expanded)
             for (final r in rows)
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -370,6 +392,7 @@ class _DayGroup extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }
