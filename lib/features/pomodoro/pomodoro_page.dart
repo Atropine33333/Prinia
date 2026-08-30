@@ -312,16 +312,14 @@ class _StatsView extends ConsumerWidget {
 class _DayGroup extends StatefulWidget {
   final DateTime day;
   final List<FocusSessionRow> rows;
-  final bool initiallyExpanded;
-  const _DayGroup(
-      {required this.day, required this.rows, this.initiallyExpanded = true});
+  const _DayGroup({required this.day, required this.rows});
 
   @override
   State<_DayGroup> createState() => _DayGroupState();
 }
 
 class _DayGroupState extends State<_DayGroup> {
-  late bool _expanded = widget.initiallyExpanded;
+  bool _expanded = true;
 
   @override
   Widget build(BuildContext context) {
