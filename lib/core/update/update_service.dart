@@ -25,7 +25,7 @@ class UpdateService {
   UpdateService._();
 
   static const repo = 'Atropine33333/Prinia';
-  static const appVersion = '1.1.0';
+  static const appVersion = '1.2.0';
   static const _checkDateKey = 'last_update_check_date';
 
   static const _latestUrl = 'https://api.github.com/repos/$repo/releases/latest';
