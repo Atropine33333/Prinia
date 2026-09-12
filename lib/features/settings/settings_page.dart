@@ -14,6 +14,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/presets.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../shared/responsive.dart';
+import '../timetable/period_editor_page.dart';
+import '../timetable/periods.dart';
 import '../timetable/timetable_providers.dart';
 import 'theme_editor_page.dart';
 
@@ -89,6 +91,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final colors = Theme.of(context).extension<AppColors>()!;
     final activeId = ref.watch(themeControllerProvider);
     final semesterStart = ref.watch(semesterStartProvider);
+    final periods = ref.watch(periodsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
@@ -249,6 +252,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 await ref.read(semesterStartProvider.notifier).set(monday);
               }
             },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('自定义作息',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            subtitle: Text(
+              '${periods.length} 节 · '
+              '${formatMinutes(periods.first.startMinutes)}'
+              '–${formatMinutes(periods.last.endMinutes)}',
+              style: TextStyle(color: colors.textMuted, fontSize: 12),
+            ),
+            trailing: Icon(Icons.chevron_right, color: colors.textMuted),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PeriodEditorPage()),
+            ),
           ),
           const SizedBox(height: 24),
           // ── 多设备同步 ──

@@ -79,6 +79,7 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final periods = ref.watch(periodsProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEdit ? '课程详情' : '新建课程'),
@@ -156,7 +157,7 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
           // 时间（15 分钟步进）
           _SectionLabel(
               '时间（${_fmt(_startMinutes)} – ${_fmt(_startMinutes + _durationMinutes)}'
-              '${_periodSuffix()}）'),
+              '${_periodSuffix(periods)}）'),
           Row(
             children: [
               _Stepper(
@@ -341,10 +342,10 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     setState(() => _reminders.add(CourseReminder(date: date, text: text)));
   }
 
-  /// 与默认作息吻合时附带节次提示，如「 · 第3-4节」。
-  String _periodSuffix() {
-    final covered =
-        coveredPeriods(_startMinutes, _startMinutes + _durationMinutes);
+  /// 与当前作息吻合时附带节次提示，如「 · 第3-4节」。
+  String _periodSuffix(List<CoursePeriod> periods) {
+    final covered = coveredPeriods(
+        periods, _startMinutes, _startMinutes + _durationMinutes);
     return covered == null ? '' : ' · ${formatPeriodSpan(covered)}';
   }
 

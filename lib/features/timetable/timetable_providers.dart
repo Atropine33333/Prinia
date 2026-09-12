@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/sync/device_identity.dart';
+import 'periods.dart';
 
 export '../../core/db/daos/courses_dao.dart'
     show CourseRow, CourseReminder, encodeReminders, parseReminders;
@@ -83,6 +84,70 @@ final semesterStartRowProvider = StreamProvider<AppMetaRow?>((ref) {
   final db = ref.watch(databaseProvider);
   return (db.select(db.appMeta)
         ..where((t) => t.metaKey.equals('semester_start')))
+      .watchSingleOrNull();
+});
+
+/// 自定义作息（存 app_meta，随同步下发；无自定义时用默认华科 12 节）。
+final periodsProvider =
+    NotifierProvider<PeriodsController, List<CoursePeriod>>(
+        PeriodsController.new);
+
+class PeriodsController extends Notifier<List<CoursePeriod>> {
+  static const _key = 'custom_periods';
+  static const _uuid = 'meta-custom-periods';
+
+  @override
+  List<CoursePeriod> build() {
+    // 同步写入也会触达，自动刷新
+    ref.listen(periodsRowProvider, (_, next) {
+      final row = next.value;
+      if (row == null) return;
+      final parsed = parsePeriods(row.metaValue);
+      if (parsed != null && !samePeriods(parsed, state)) state = parsed;
+    });
+    Future.microtask(_load);
+    return defaultPeriods;
+  }
+
+  Future<void> _load() async {
+    final db = ref.read(databaseProvider);
+    final row = await (db.select(db.appMeta)
+          ..where((t) => t.metaKey.equals(_key)))
+        .getSingleOrNull();
+    if (row != null) {
+      final parsed = parsePeriods(row.metaValue);
+      if (parsed != null) state = parsed;
+    }
+  }
+
+  /// 保存自定义作息（节次按顺序重排）；非法时抛 [ArgumentError]。
+  Future<void> set(List<CoursePeriod> periods) async {
+    final error = validatePeriods(periods);
+    if (error != null) throw ArgumentError(error);
+    final normalized = [
+      for (var i = 0; i < periods.length; i++)
+        CoursePeriod(i + 1, periods[i].startMinutes, periods[i].endMinutes),
+    ];
+    state = normalized;
+    final db = ref.read(databaseProvider);
+    await db.into(db.appMeta).insertOnConflictUpdate(AppMetaCompanion(
+          uuid: const Value(_uuid),
+          metaKey: const Value(_key),
+          metaValue: Value(encodePeriods(normalized)),
+          updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+          deviceId: Value(DeviceIdentity.current),
+        ));
+  }
+
+  /// 恢复默认（华科 12 节）。
+  Future<void> reset() => set(defaultPeriods);
+}
+
+/// 自定义作息所在行流。
+final periodsRowProvider = StreamProvider<AppMetaRow?>((ref) {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.appMeta)
+        ..where((t) => t.metaKey.equals('custom_periods')))
       .watchSingleOrNull();
 });
 

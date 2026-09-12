@@ -19,9 +19,12 @@ const double _slotColW = 44.0;
 /// 网格默认起始时刻：7:00（早于 7 点的课程会自动向上扩展）。
 const int _defaultGridStart = 7 * 60;
 
-/// 课表可视起始时刻（分钟）。
-int _gridStartOf(List<CourseRow> all) {
+/// 课表可视起始时刻（分钟）：默认 7:00；更早的作息或课程会自动向上扩展。
+int _gridStartOf(List<CourseRow> all, List<CoursePeriod> periods) {
   var m = _defaultGridStart;
+  if (periods.isNotEmpty && periods.first.startMinutes < m) {
+    m = periods.first.startMinutes;
+  }
   for (final c in all) {
     if (!c.isDeleted && c.startMinutes < m) m = c.startMinutes;
   }
@@ -29,8 +32,8 @@ int _gridStartOf(List<CourseRow> all) {
 }
 
 /// 课表可视结束时刻（分钟）：末节结束与最晚课程取大。
-int _gridEndOf(List<CourseRow> all) {
-  var m = defaultPeriods.last.endMinutes;
+int _gridEndOf(List<CourseRow> all, List<CoursePeriod> periods) {
+  var m = periods.isEmpty ? _defaultGridStart : periods.last.endMinutes;
   for (final c in all) {
     if (c.isDeleted) continue;
     final end = c.startMinutes + c.durationMinutes;
@@ -61,7 +64,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     super.dispose();
   }
 
-  void _ensureInitialScroll(List<CourseRow> all) {
+  void _ensureInitialScroll(List<CourseRow> all, List<CoursePeriod> periods) {
     if (_scrolledToInit) return;
     _scrolledToInit = true;
     final active = all.where((c) => !c.isDeleted).toList();
@@ -69,7 +72,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     for (final c in active) {
       if (c.startMinutes < startMin) startMin = c.startMinutes;
     }
-    final offset = _minutesToOffset(startMin, _gridStartOf(all));
+    final offset = _minutesToOffset(startMin, _gridStartOf(all, periods));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.jumpTo(offset.clamp(
@@ -86,7 +89,8 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     final start = ref.watch(semesterStartProvider);
     final week = ref.watch(displayedWeekProvider);
     final courses = ref.watch(coursesProvider);
-    _ensureInitialScroll(courses.value ?? const []);
+    final periods = ref.watch(periodsProvider);
+    _ensureInitialScroll(courses.value ?? const [], periods);
 
     final monday = start.add(Duration(days: (week - 1) * 7));
     final today = DateTime.now();
@@ -179,8 +183,9 @@ class _Grid extends ConsumerWidget {
     final nowMinutes = now.hour * 60 + now.minute;
     final fontSize = ref.watch(timetableFontProvider);
     final showPeriods = ref.watch(periodDisplayProvider);
-    final gridStart = _gridStartOf(all);
-    final gridEnd = _gridEndOf(all);
+    final periods = ref.watch(periodsProvider);
+    final gridStart = _gridStartOf(all, periods);
+    final gridEnd = _gridEndOf(all, periods);
     final gridHeight = (gridEnd - gridStart) * minuteHeight;
     final nowOffset = _minutesToOffset(nowMinutes, gridStart);
     final showNow =
@@ -221,6 +226,7 @@ class _Grid extends ConsumerWidget {
               child: Row(
                 children: [
                   _TimeColumn(
+                    periods: periods,
                     showPeriods: showPeriods,
                     onToggle: () => ref
                         .read(periodDisplayProvider.notifier)
@@ -242,8 +248,8 @@ class _Grid extends ConsumerWidget {
                         ),
                         child: Stack(
                           children: [
-                            // 节次分块：45 分钟一格，课间留白；点空白格建课
-                            for (final p in defaultPeriods)
+                            // 节次分块：按作息排列，课间留白；点空白格建课
+                            for (final p in periods)
                               Positioned(
                                 top: _minutesToOffset(
                                     p.startMinutes, gridStart),
@@ -320,14 +326,16 @@ class _Grid extends ConsumerWidget {
 }
 
 /// 左侧时间列：默认显示每节的起止时刻（如 08:00 / 08:45）；
-/// 点击切换为 1–12 节次编号。
+/// 点击切换为节次编号。
 class _TimeColumn extends StatelessWidget {
+  final List<CoursePeriod> periods;
   final bool showPeriods;
   final VoidCallback onToggle;
   final int gridStart;
   final double height;
 
   const _TimeColumn({
+    required this.periods,
     required this.showPeriods,
     required this.onToggle,
     required this.gridStart,
@@ -345,7 +353,7 @@ class _TimeColumn extends StatelessWidget {
         height: height,
         child: Stack(
           children: [
-            for (final p in defaultPeriods)
+            for (final p in periods)
               Positioned(
                 top: _minutesToOffset(p.startMinutes, gridStart),
                 height: p.durationMinutes * minuteHeight,
@@ -373,7 +381,7 @@ class _TimeColumn extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              _fmtMin(p.startMinutes),
+                              formatMinutes(p.startMinutes),
                               style: TextStyle(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w600,
@@ -381,7 +389,7 @@ class _TimeColumn extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              _fmtMin(p.endMinutes),
+                              formatMinutes(p.endMinutes),
                               style: TextStyle(
                                 fontSize: 9.5,
                                 color: colors.textMuted,
@@ -452,7 +460,7 @@ void showQuickEdit(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${cur.name} · ${_fmtMin(cur.startMinutes)} – ${_fmtMin(cur.startMinutes + cur.durationMinutes)} · ${_durText(cur.durationMinutes)}',
+                  '${cur.name} · ${formatMinutes(cur.startMinutes)} – ${formatMinutes(cur.startMinutes + cur.durationMinutes)} · ${_durText(cur.durationMinutes)}',
                   style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -542,9 +550,6 @@ CourseRow _copyWithTime(CourseRow c, int weekday, int startMinutes) {
 
 /// 两种单双周设置是否有交叠（0=每周与任意设置都重叠）。
 bool _parityOverlap(int a, int b) => a == 0 || b == 0 || a == b;
-
-String _fmtMin(int m) =>
-    '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
 
 String _durText(int minutes) => '$minutes 分钟';
 
