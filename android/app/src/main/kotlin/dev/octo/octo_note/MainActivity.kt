@@ -63,15 +63,23 @@ class MainActivity : FlutterActivity() {
                 }
             })
 
+        // 屏幕状态查询（番茄钟溜号检测用；与蓝牙通道分离）
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "prinia/screen")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isScreenOn" -> {
+                        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+                        result.success(pm.isInteractive)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "prinia/bt")
             .setMethodCallHandler { call, result ->
                 try {
                     when (call.method) {
                         "isOn" -> result.success(btAdapter?.isEnabled == true)
-                        "isScreenOn" -> {
-                            val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
-                            result.success(pm.isInteractive)
-                        }
                         "myName" -> result.success(btAdapter?.name ?: "")
                         "requestEnable" -> {
                             val adapter = btAdapter
