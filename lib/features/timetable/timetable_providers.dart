@@ -102,17 +102,29 @@ final coursesProvider = StreamProvider<List<CourseRow>>((ref) {
   return db.coursesDao.watchAll();
 });
 
-/// 指定周在指定 weekday 上课的课程。
+/// 指定周在指定 weekday 上课的课程（含单双周过滤）。
 List<CourseRow> coursesForDay(List<CourseRow> all, int week, int weekday) {
   return all
       .where((c) =>
-          c.weekday == weekday &&
-          !c.isDeleted &&
-          week >= c.startWeek &&
-          week <= c.endWeek)
+          c.weekday == weekday && !c.isDeleted && courseRunsInWeek(c, week))
       .toList()
     ..sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
 }
+
+/// 课程在第 [week] 周是否上课（周次范围 + 单双周）。
+///
+/// [CourseRow.weekParity]：0=每周，1=单周（奇数周），2=双周（偶数周）。
+bool courseRunsInWeek(CourseRow course, int week) {
+  if (week < course.startWeek || week > course.endWeek) return false;
+  return switch (course.weekParity) {
+    1 => week.isOdd,
+    2 => week.isEven,
+    _ => true,
+  };
+}
+
+/// 时间列显示模式：false=时刻，true=节次（点击时间列切换）。
+final periodDisplayProvider = StateProvider<bool>((ref) => false);
 
 /// 课表课程名字号（设置页可调）。
 final timetableFontProvider =

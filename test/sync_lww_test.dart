@@ -244,6 +244,7 @@ void main() {
             weekday: 2,
             startWeek: 1,
             endWeek: 16,
+            weekParity: const Value(2),
             startMinutes: const Value(8 * 60 + 30),
             durationMinutes: const Value(90),
             colorHex: const Value('#8896AB'),
@@ -257,6 +258,7 @@ void main() {
       final row = await (b.select(b.courses)).getSingle();
       expect(row.name, '高等数学');
       expect(row.teacher, '张三');
+      expect(row.weekParity, 2);
       expect(row.startMinutes, 510);
       expect(row.durationMinutes, 90);
       expect(parseReminders(row.remindersJson), hasLength(1));

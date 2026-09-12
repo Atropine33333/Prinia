@@ -1249,6 +1249,18 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _weekParityMeta = const VerificationMeta(
+    'weekParity',
+  );
+  @override
+  late final GeneratedColumn<int> weekParity = GeneratedColumn<int>(
+    'week_parity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _startMinutesMeta = const VerificationMeta(
     'startMinutes',
   );
@@ -1313,6 +1325,7 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
     weekday,
     startWeek,
     endWeek,
+    weekParity,
     startMinutes,
     durationMinutes,
     colorHex,
@@ -1398,6 +1411,12 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
     } else if (isInserting) {
       context.missing(_endWeekMeta);
     }
+    if (data.containsKey('week_parity')) {
+      context.handle(
+        _weekParityMeta,
+        weekParity.isAcceptableOrUnknown(data['week_parity']!, _weekParityMeta),
+      );
+    }
     if (data.containsKey('start_minutes')) {
       context.handle(
         _startMinutesMeta,
@@ -1480,6 +1499,10 @@ class $CoursesTable extends Courses with TableInfo<$CoursesTable, CourseRow> {
         DriftSqlType.int,
         data['${effectivePrefix}end_week'],
       )!,
+      weekParity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}week_parity'],
+      )!,
       startMinutes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}start_minutes'],
@@ -1519,6 +1542,9 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
   final int startWeek;
   final int endWeek;
 
+  /// 单双周：0=每周，1=单周，2=双周
+  final int weekParity;
+
   /// 开始时刻（当日 0 点起的分钟数，15 分钟步进）
   final int startMinutes;
 
@@ -1539,6 +1565,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     required this.weekday,
     required this.startWeek,
     required this.endWeek,
+    required this.weekParity,
     required this.startMinutes,
     required this.durationMinutes,
     required this.colorHex,
@@ -1561,6 +1588,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     map['weekday'] = Variable<int>(weekday);
     map['start_week'] = Variable<int>(startWeek);
     map['end_week'] = Variable<int>(endWeek);
+    map['week_parity'] = Variable<int>(weekParity);
     map['start_minutes'] = Variable<int>(startMinutes);
     map['duration_minutes'] = Variable<int>(durationMinutes);
     map['color_hex'] = Variable<String>(colorHex);
@@ -1582,6 +1610,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
       weekday: Value(weekday),
       startWeek: Value(startWeek),
       endWeek: Value(endWeek),
+      weekParity: Value(weekParity),
       startMinutes: Value(startMinutes),
       durationMinutes: Value(durationMinutes),
       colorHex: Value(colorHex),
@@ -1605,6 +1634,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
       weekday: serializer.fromJson<int>(json['weekday']),
       startWeek: serializer.fromJson<int>(json['startWeek']),
       endWeek: serializer.fromJson<int>(json['endWeek']),
+      weekParity: serializer.fromJson<int>(json['weekParity']),
       startMinutes: serializer.fromJson<int>(json['startMinutes']),
       durationMinutes: serializer.fromJson<int>(json['durationMinutes']),
       colorHex: serializer.fromJson<String>(json['colorHex']),
@@ -1625,6 +1655,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
       'weekday': serializer.toJson<int>(weekday),
       'startWeek': serializer.toJson<int>(startWeek),
       'endWeek': serializer.toJson<int>(endWeek),
+      'weekParity': serializer.toJson<int>(weekParity),
       'startMinutes': serializer.toJson<int>(startMinutes),
       'durationMinutes': serializer.toJson<int>(durationMinutes),
       'colorHex': serializer.toJson<String>(colorHex),
@@ -1643,6 +1674,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     int? weekday,
     int? startWeek,
     int? endWeek,
+    int? weekParity,
     int? startMinutes,
     int? durationMinutes,
     String? colorHex,
@@ -1658,6 +1690,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     weekday: weekday ?? this.weekday,
     startWeek: startWeek ?? this.startWeek,
     endWeek: endWeek ?? this.endWeek,
+    weekParity: weekParity ?? this.weekParity,
     startMinutes: startMinutes ?? this.startMinutes,
     durationMinutes: durationMinutes ?? this.durationMinutes,
     colorHex: colorHex ?? this.colorHex,
@@ -1675,6 +1708,9 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
       weekday: data.weekday.present ? data.weekday.value : this.weekday,
       startWeek: data.startWeek.present ? data.startWeek.value : this.startWeek,
       endWeek: data.endWeek.present ? data.endWeek.value : this.endWeek,
+      weekParity: data.weekParity.present
+          ? data.weekParity.value
+          : this.weekParity,
       startMinutes: data.startMinutes.present
           ? data.startMinutes.value
           : this.startMinutes,
@@ -1701,6 +1737,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
           ..write('weekday: $weekday, ')
           ..write('startWeek: $startWeek, ')
           ..write('endWeek: $endWeek, ')
+          ..write('weekParity: $weekParity, ')
           ..write('startMinutes: $startMinutes, ')
           ..write('durationMinutes: $durationMinutes, ')
           ..write('colorHex: $colorHex, ')
@@ -1721,6 +1758,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
     weekday,
     startWeek,
     endWeek,
+    weekParity,
     startMinutes,
     durationMinutes,
     colorHex,
@@ -1740,6 +1778,7 @@ class CourseRow extends DataClass implements Insertable<CourseRow> {
           other.weekday == this.weekday &&
           other.startWeek == this.startWeek &&
           other.endWeek == this.endWeek &&
+          other.weekParity == this.weekParity &&
           other.startMinutes == this.startMinutes &&
           other.durationMinutes == this.durationMinutes &&
           other.colorHex == this.colorHex &&
@@ -1757,6 +1796,7 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
   final Value<int> weekday;
   final Value<int> startWeek;
   final Value<int> endWeek;
+  final Value<int> weekParity;
   final Value<int> startMinutes;
   final Value<int> durationMinutes;
   final Value<String> colorHex;
@@ -1773,6 +1813,7 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     this.weekday = const Value.absent(),
     this.startWeek = const Value.absent(),
     this.endWeek = const Value.absent(),
+    this.weekParity = const Value.absent(),
     this.startMinutes = const Value.absent(),
     this.durationMinutes = const Value.absent(),
     this.colorHex = const Value.absent(),
@@ -1790,6 +1831,7 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     required int weekday,
     required int startWeek,
     required int endWeek,
+    this.weekParity = const Value.absent(),
     this.startMinutes = const Value.absent(),
     this.durationMinutes = const Value.absent(),
     this.colorHex = const Value.absent(),
@@ -1810,6 +1852,7 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     Expression<int>? weekday,
     Expression<int>? startWeek,
     Expression<int>? endWeek,
+    Expression<int>? weekParity,
     Expression<int>? startMinutes,
     Expression<int>? durationMinutes,
     Expression<String>? colorHex,
@@ -1827,6 +1870,7 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
       if (weekday != null) 'weekday': weekday,
       if (startWeek != null) 'start_week': startWeek,
       if (endWeek != null) 'end_week': endWeek,
+      if (weekParity != null) 'week_parity': weekParity,
       if (startMinutes != null) 'start_minutes': startMinutes,
       if (durationMinutes != null) 'duration_minutes': durationMinutes,
       if (colorHex != null) 'color_hex': colorHex,
@@ -1846,6 +1890,7 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     Value<int>? weekday,
     Value<int>? startWeek,
     Value<int>? endWeek,
+    Value<int>? weekParity,
     Value<int>? startMinutes,
     Value<int>? durationMinutes,
     Value<String>? colorHex,
@@ -1863,6 +1908,7 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
       weekday: weekday ?? this.weekday,
       startWeek: startWeek ?? this.startWeek,
       endWeek: endWeek ?? this.endWeek,
+      weekParity: weekParity ?? this.weekParity,
       startMinutes: startMinutes ?? this.startMinutes,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       colorHex: colorHex ?? this.colorHex,
@@ -1904,6 +1950,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
     if (endWeek.present) {
       map['end_week'] = Variable<int>(endWeek.value);
     }
+    if (weekParity.present) {
+      map['week_parity'] = Variable<int>(weekParity.value);
+    }
     if (startMinutes.present) {
       map['start_minutes'] = Variable<int>(startMinutes.value);
     }
@@ -1935,6 +1984,7 @@ class CoursesCompanion extends UpdateCompanion<CourseRow> {
           ..write('weekday: $weekday, ')
           ..write('startWeek: $startWeek, ')
           ..write('endWeek: $endWeek, ')
+          ..write('weekParity: $weekParity, ')
           ..write('startMinutes: $startMinutes, ')
           ..write('durationMinutes: $durationMinutes, ')
           ..write('colorHex: $colorHex, ')
@@ -3720,6 +3770,7 @@ typedef $$CoursesTableCreateCompanionBuilder = CoursesCompanion Function({
   required int weekday,
   required int startWeek,
   required int endWeek,
+  Value<int> weekParity,
   Value<int> startMinutes,
   Value<int> durationMinutes,
   Value<String> colorHex,
@@ -3737,6 +3788,7 @@ typedef $$CoursesTableUpdateCompanionBuilder = CoursesCompanion Function({
   Value<int> weekday,
   Value<int> startWeek,
   Value<int> endWeek,
+  Value<int> weekParity,
   Value<int> startMinutes,
   Value<int> durationMinutes,
   Value<String> colorHex,
@@ -3800,6 +3852,11 @@ class $$CoursesTableFilterComposer
 
   ColumnFilters<int> get endWeek => $composableBuilder(
     column: $table.endWeek,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get weekParity => $composableBuilder(
+    column: $table.weekParity,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3883,6 +3940,11 @@ class $$CoursesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get weekParity => $composableBuilder(
+    column: $table.weekParity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get startMinutes => $composableBuilder(
     column: $table.startMinutes,
     builder: (column) => ColumnOrderings(column),
@@ -3943,6 +4005,11 @@ class $$CoursesTableAnnotationComposer
   GeneratedColumn<int> get endWeek =>
       $composableBuilder(column: $table.endWeek, builder: (column) => column);
 
+  GeneratedColumn<int> get weekParity => $composableBuilder(
+    column: $table.weekParity,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get startMinutes => $composableBuilder(
     column: $table.startMinutes,
     builder: (column) => column,
@@ -4000,6 +4067,7 @@ class $$CoursesTableTableManager
                 Value<int> weekday = const Value.absent(),
                 Value<int> startWeek = const Value.absent(),
                 Value<int> endWeek = const Value.absent(),
+                Value<int> weekParity = const Value.absent(),
                 Value<int> startMinutes = const Value.absent(),
                 Value<int> durationMinutes = const Value.absent(),
                 Value<String> colorHex = const Value.absent(),
@@ -4016,6 +4084,7 @@ class $$CoursesTableTableManager
                 weekday: weekday,
                 startWeek: startWeek,
                 endWeek: endWeek,
+                weekParity: weekParity,
                 startMinutes: startMinutes,
                 durationMinutes: durationMinutes,
                 colorHex: colorHex,
@@ -4034,6 +4103,7 @@ class $$CoursesTableTableManager
                 required int weekday,
                 required int startWeek,
                 required int endWeek,
+                Value<int> weekParity = const Value.absent(),
                 Value<int> startMinutes = const Value.absent(),
                 Value<int> durationMinutes = const Value.absent(),
                 Value<String> colorHex = const Value.absent(),
@@ -4050,6 +4120,7 @@ class $$CoursesTableTableManager
                 weekday: weekday,
                 startWeek: startWeek,
                 endWeek: endWeek,
+                weekParity: weekParity,
                 startMinutes: startMinutes,
                 durationMinutes: durationMinutes,
                 colorHex: colorHex,

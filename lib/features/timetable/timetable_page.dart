@@ -8,16 +8,42 @@ import '../../core/db/database.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/theme/app_colors.dart';
 import 'course_edit_page.dart';
+import 'periods.dart';
 import 'timetable_providers.dart';
 
-const double hourHeight = 64.0;
-
-/// 分钟 → 像素偏移。
-double minutesToOffset(int minutes) => minutes / 60 * hourHeight;
+/// 每分钟对应的像素高度（与原 64px/小时 的疏密一致）。
+const double minuteHeight = 64.0 / 60;
 const double _dayHeaderH = 34.0;
 const double _slotColW = 44.0;
 
-/// 课表页：24 小时时间轴周视图，长按课程弹出快速移动面板。
+/// 网格默认起始时刻：7:00（早于 7 点的课程会自动向上扩展）。
+const int _defaultGridStart = 7 * 60;
+
+/// 课表可视起始时刻（分钟）。
+int _gridStartOf(List<CourseRow> all) {
+  var m = _defaultGridStart;
+  for (final c in all) {
+    if (!c.isDeleted && c.startMinutes < m) m = c.startMinutes;
+  }
+  return m;
+}
+
+/// 课表可视结束时刻（分钟）：末节结束与最晚课程取大。
+int _gridEndOf(List<CourseRow> all) {
+  var m = defaultPeriods.last.endMinutes;
+  for (final c in all) {
+    if (c.isDeleted) continue;
+    final end = c.startMinutes + c.durationMinutes;
+    if (end > m) m = end;
+  }
+  return m;
+}
+
+/// 时刻 → 相对网格顶部的像素偏移。
+double _minutesToOffset(int minutes, int gridStart) =>
+    (minutes - gridStart) * minuteHeight;
+
+/// 课表页：7:00 起的节次时间轴周视图，45 分钟一节，长按课程弹出快速移动面板。
 class TimetablePage extends ConsumerStatefulWidget {
   const TimetablePage({super.key});
 
@@ -43,9 +69,13 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     for (final c in active) {
       if (c.startMinutes < startMin) startMin = c.startMinutes;
     }
+    final offset = _minutesToOffset(startMin, _gridStartOf(all));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
-        _scrollCtrl.jumpTo(minutesToOffset(startMin));
+        _scrollCtrl.jumpTo(offset.clamp(
+          _scrollCtrl.position.minScrollExtent,
+          _scrollCtrl.position.maxScrollExtent,
+        ));
       }
     });
   }
@@ -146,13 +176,20 @@ class _Grid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final now = DateTime.now();
-    final nowOffset = minutesToOffset(now.hour * 60 + now.minute);
+    final nowMinutes = now.hour * 60 + now.minute;
     final fontSize = ref.watch(timetableFontProvider);
+    final showPeriods = ref.watch(periodDisplayProvider);
+    final gridStart = _gridStartOf(all);
+    final gridEnd = _gridEndOf(all);
+    final gridHeight = (gridEnd - gridStart) * minuteHeight;
+    final nowOffset = _minutesToOffset(nowMinutes, gridStart);
+    final showNow =
+        isCurrentWeek && nowMinutes >= gridStart && nowMinutes <= gridEnd;
 
     return SingleChildScrollView(
       controller: scrollCtrl,
       child: SizedBox(
-        height: _dayHeaderH + 24 * hourHeight,
+        height: _dayHeaderH + gridHeight,
         child: Column(
           children: [
             SizedBox(
@@ -183,27 +220,13 @@ class _Grid extends ConsumerWidget {
             Expanded(
               child: Row(
                 children: [
-                  SizedBox(
-                    width: _slotColW,
-                    child: Column(
-                      children: [
-                        for (var h = 0; h < 24; h++)
-                          SizedBox(
-                            height: hourHeight,
-                            child: Align(
-                              alignment: Alignment.topCenter,
-                              child: Transform.translate(
-                                offset: const Offset(0, -6),
-                                child: Text(
-                                  '${h.toString().padLeft(2, '0')}:00',
-                                  style: TextStyle(
-                                      fontSize: 11, color: colors.textMuted),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                  _TimeColumn(
+                    showPeriods: showPeriods,
+                    onToggle: () => ref
+                        .read(periodDisplayProvider.notifier)
+                        .state = !showPeriods,
+                    gridStart: gridStart,
+                    height: gridHeight,
                   ),
                   for (var d = 1; d <= 7; d++)
                     Expanded(
@@ -219,36 +242,42 @@ class _Grid extends ConsumerWidget {
                         ),
                         child: Stack(
                           children: [
-                            Column(
-                              children: [
-                                for (var h = 0; h < 24; h++)
-                                  SizedBox(
-                                    height: hourHeight,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () =>
-                                          Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => CourseEditPage(
-                                            initialWeekday: d,
-                                            initialHour: h,
-                                          ),
-                                        ),
-                                      ),
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          border: Border(
-                                            top: BorderSide(
-                                                color: colors.border,
-                                                width: 0.5),
-                                          ),
-                                        ),
+                            // 节次分块：45 分钟一格，课间留白；点空白格建课
+                            for (final p in defaultPeriods)
+                              Positioned(
+                                top: _minutesToOffset(
+                                    p.startMinutes, gridStart),
+                                height: p.durationMinutes * minuteHeight,
+                                left: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () =>
+                                      Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => CourseEditPage(
+                                        initialWeekday: d,
+                                        initialStartMinutes: p.startMinutes,
+                                        initialDurationMinutes:
+                                            p.durationMinutes,
                                       ),
                                     ),
                                   ),
-                              ],
-                            ),
-                            if (isCurrentWeek && d == todayWeekday)
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        top: BorderSide(
+                                            color: colors.border,
+                                            width: 0.5),
+                                        bottom: BorderSide(
+                                            color: colors.border,
+                                            width: 0.5),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (showNow)
                               Positioned(
                                 left: 0,
                                 right: 0,
@@ -261,12 +290,12 @@ class _Grid extends ConsumerWidget {
                             for (final c in all)
                               if (c.weekday == d &&
                                   !c.isDeleted &&
-                                  week >= c.startWeek &&
-                                  week <= c.endWeek)
+                                  courseRunsInWeek(c, week))
                                 Positioned(
-                                  top: minutesToOffset(c.startMinutes) + 1,
-                                  height:
-                                      minutesToOffset(c.durationMinutes) - 2,
+                                  top: _minutesToOffset(
+                                          c.startMinutes, gridStart) +
+                                      1,
+                                  height: c.durationMinutes * minuteHeight - 2,
                                   left: 1,
                                   right: 1,
                                   child: CourseCard(
@@ -290,6 +319,85 @@ class _Grid extends ConsumerWidget {
   }
 }
 
+/// 左侧时间列：默认显示每节的起止时刻（如 08:00 / 08:45）；
+/// 点击切换为 1–12 节次编号。
+class _TimeColumn extends StatelessWidget {
+  final bool showPeriods;
+  final VoidCallback onToggle;
+  final int gridStart;
+  final double height;
+
+  const _TimeColumn({
+    required this.showPeriods,
+    required this.onToggle,
+    required this.gridStart,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onToggle,
+      child: SizedBox(
+        width: _slotColW,
+        height: height,
+        child: Stack(
+          children: [
+            for (final p in defaultPeriods)
+              Positioned(
+                top: _minutesToOffset(p.startMinutes, gridStart),
+                height: p.durationMinutes * minuteHeight,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: showPeriods
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: colors.primary.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${p.index}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: colors.primary,
+                            ),
+                          ),
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _fmtMin(p.startMinutes),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: colors.text,
+                              ),
+                            ),
+                            Text(
+                              _fmtMin(p.endMinutes),
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                color: colors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// 长按快速编辑：上下左右移动，冲突方向置灰，时长去详情改。
 void showQuickEdit(
   BuildContext context,
@@ -304,6 +412,7 @@ void showQuickEdit(
   bool conflict(int weekday, int startMinutes) {
     for (final o in all) {
       if (o.uuid == cur.uuid || o.isDeleted || o.weekday != weekday) continue;
+      if (!_parityOverlap(cur.weekParity, o.weekParity)) continue; // 单双周错开不算冲突
       if (startMinutes < o.startMinutes + o.durationMinutes &&
           o.startMinutes < startMinutes + cur.durationMinutes) {
         return true;
@@ -423,12 +532,16 @@ CourseRow _copyWithTime(CourseRow c, int weekday, int startMinutes) {
     weekday: weekday,
     startWeek: c.startWeek,
     endWeek: c.endWeek,
+    weekParity: c.weekParity,
     startMinutes: startMinutes,
     durationMinutes: c.durationMinutes,
     colorHex: c.colorHex,
     remindersJson: c.remindersJson,
   );
 }
+
+/// 两种单双周设置是否有交叠（0=每周与任意设置都重叠）。
+bool _parityOverlap(int a, int b) => a == 0 || b == 0 || a == b;
 
 String _fmtMin(int m) =>
     '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
@@ -525,6 +638,16 @@ class CourseCard extends StatelessWidget {
                   color: onColor,
                 ),
               ),
+              if (course.weekParity != 0)
+                TextSpan(
+                  text: course.weekParity == 1 ? ' 单' : ' 双',
+                  style: TextStyle(
+                    fontSize: fontSize - 2,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                    color: onColor.withValues(alpha: 0.8),
+                  ),
+                ),
               if (course.room?.isNotEmpty == true)
                 TextSpan(
                   text: ' @${course.room}',

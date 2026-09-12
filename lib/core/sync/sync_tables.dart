@@ -157,6 +157,7 @@ SyncTableAdapter _courses(AppDatabase db) {
       weekday: _asInt(row, 'weekday') ?? 1,
       startWeek: _asInt(row, 'startWeek') ?? 1,
       endWeek: _asInt(row, 'endWeek') ?? 16,
+      weekParity: Value(_asInt(row, 'weekParity') ?? 0),
       startMinutes: Value(_asInt(row, 'startMinutes') ?? 480),
       durationMinutes: Value(_asInt(row, 'durationMinutes') ?? 60),
       colorHex: Value(row['colorHex'] as String? ?? '#7A9E9F'),

@@ -9,6 +9,7 @@ import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../shared/responsive.dart';
+import 'periods.dart';
 import 'timetable_providers.dart';
 
 /// 课程卡片预设色（低饱和 Morandi）。
@@ -21,13 +22,19 @@ const coursePalette = [
 class CourseEditPage extends ConsumerStatefulWidget {
   final CourseRow? existing;
   final int initialWeekday;
-  final int initialHour; // 仅作为初始分钟数的整小时入口
+  final int initialHour; // 兼容入口：整小时初始值
+
+  /// 按节次创建时的初始开始时刻（分钟）与时长，优先于 [initialHour]。
+  final int? initialStartMinutes;
+  final int? initialDurationMinutes;
 
   const CourseEditPage({
     super.key,
     this.existing,
     this.initialWeekday = 1,
     this.initialHour = 8,
+    this.initialStartMinutes,
+    this.initialDurationMinutes,
   });
 
   @override
@@ -41,6 +48,7 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
   late Set<int> _weekdays;
   late int _startWeek;
   late int _endWeek;
+  late int _weekParity;
   late int _startMinutes;
   late int _durationMinutes;
   late String _colorHex;
@@ -58,8 +66,11 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     _weekdays = e != null ? {e.weekday} : {widget.initialWeekday};
     _startWeek = e?.startWeek ?? 1;
     _endWeek = e?.endWeek ?? 16;
-    _startMinutes = e?.startMinutes ?? widget.initialHour * 60;
-    _durationMinutes = e?.durationMinutes ?? 60;
+    _weekParity = e?.weekParity ?? 0;
+    _startMinutes =
+        e?.startMinutes ?? widget.initialStartMinutes ?? widget.initialHour * 60;
+    _durationMinutes =
+        e?.durationMinutes ?? widget.initialDurationMinutes ?? 45;
     _colorHex = e?.colorHex ??
         coursePalette[(e == null ? widget.initialWeekday : e.uuid.hashCode.abs()) % coursePalette.length];
     _reminders = e == null ? [] : parseReminders(e.remindersJson);
@@ -143,7 +154,9 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
           ),
           const SizedBox(height: 16),
           // 时间（15 分钟步进）
-          _SectionLabel('时间（${_fmt(_startMinutes)} – ${_fmt(_startMinutes + _durationMinutes)}）'),
+          _SectionLabel(
+              '时间（${_fmt(_startMinutes)} – ${_fmt(_startMinutes + _durationMinutes)}'
+              '${_periodSuffix()}）'),
           Row(
             children: [
               _Stepper(
@@ -202,6 +215,19 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
                 onChanged: (v) => setState(() => _endWeek = v),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          // 单双周
+          _SectionLabel('单双周'),
+          SegmentedButton<int>(
+            segments: const [
+              ButtonSegment(value: 0, label: Text('每周')),
+              ButtonSegment(value: 1, label: Text('单周')),
+              ButtonSegment(value: 2, label: Text('双周')),
+            ],
+            selected: {_weekParity},
+            onSelectionChanged: (s) => setState(() => _weekParity = s.first),
+            showSelectedIcon: false,
           ),
           const SizedBox(height: 16),
           // 颜色
@@ -315,6 +341,13 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
     setState(() => _reminders.add(CourseReminder(date: date, text: text)));
   }
 
+  /// 与默认作息吻合时附带节次提示，如「 · 第3-4节」。
+  String _periodSuffix() {
+    final covered =
+        coveredPeriods(_startMinutes, _startMinutes + _durationMinutes);
+    return covered == null ? '' : ' · ${formatPeriodSpan(covered)}';
+  }
+
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
@@ -334,6 +367,7 @@ class _CourseEditPageState extends ConsumerState<CourseEditPage> {
       weekday: _weekdays.first,
       startWeek: _startWeek,
       endWeek: _endWeek,
+      weekParity: Value(_weekParity),
       startMinutes: Value(_startMinutes),
       durationMinutes: Value(_durationMinutes),
       colorHex: Value(_colorHex),

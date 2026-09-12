@@ -86,6 +86,11 @@ class Courses extends Table with SyncUuid, SyncColumns {
 
   IntColumn get endWeek => integer().named('end_week')();
 
+  /// 单双周：0=每周，1=单周，2=双周
+  IntColumn get weekParity => integer()
+      .named('week_parity')
+      .withDefault(const Constant(0))();
+
   /// 开始时刻（当日 0 点起的分钟数，15 分钟步进）
   IntColumn get startMinutes => integer()
       .named('start_minutes')

@@ -26,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   /// 当前设备标识（未来多端同步时区分来源）。
   String get deviceId => NoOpSyncService.deviceId;
@@ -83,6 +83,11 @@ class AppDatabase extends _$AppDatabase {
             }
             await m.createTable(appMeta);
             await m.createTable(syncPeers);
+          }
+          if (from < 6) {
+            // v6：课程支持单双周（0=每周 1=单周 2=双周）
+            await customStatement(
+                'ALTER TABLE courses ADD COLUMN week_parity INTEGER NOT NULL DEFAULT 0');
           }
         },
       );
