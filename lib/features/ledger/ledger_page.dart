@@ -420,53 +420,89 @@ class _StatCol extends StatelessWidget {
   }
 }
 
-class _PieWithLegend extends StatelessWidget {
+class _PieWithLegend extends StatefulWidget {
   final List<(String, double)> totals;
   const _PieWithLegend({required this.totals});
+
+  @override
+  State<_PieWithLegend> createState() => _PieWithLegendState();
+}
+
+class _PieWithLegendState extends State<_PieWithLegend> {
+  /// 选中的分类名；null = 月总览。
+  String? _selected;
+
+  void _toggle(String name) {
+    setState(() => _selected = _selected == name ? null : name);
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final palette = piePalette(colors);
+    final totals = widget.totals;
     final total = totals.fold<double>(0, (s, e) => s + e.$2);
 
     return Row(
       children: [
-        CategoryPieChart(totals: totals),
+        CategoryPieChart(
+          totals: totals,
+          highlighted: _selected,
+          onTapSlice: _toggle,
+        ),
         const SizedBox(width: 20),
         Expanded(
           child: Column(
             children: [
               for (var i = 0; i < totals.length; i++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: palette[i % palette.length],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(totals[i].$1,
-                          style: TextStyle(
-                              fontSize: 13, color: colors.text)),
-                      const Spacer(),
-                      Text(
-                        '${(totals[i].$2 / total * 100).toStringAsFixed(0)}%',
-                        style: TextStyle(
-                            fontSize: 13, color: colors.textMuted),
-                      ),
-                    ],
-                  ),
-                ),
+                _legendRow(colors, palette, totals[i], total, i),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _legendRow(AppColors colors, List<Color> palette,
+      (String, double) item, double total, int i) {
+    final selected = _selected == item.$1;
+    final amount = item.$2;
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: () => _toggle(item.$1),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: selected ? colors.activeBg : null,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: palette[i % palette.length],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(item.$1,
+                style: TextStyle(fontSize: 13, color: colors.text)),
+            const Spacer(),
+            Text(
+              selected
+                  ? '¥${amount.toStringAsFixed(amount % 1 == 0 ? 0 : 2)}'
+                  : '${(amount / total * 100).toStringAsFixed(0)}%',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected ? colors.primary : colors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -167,11 +167,14 @@ class _BarPainter extends CustomPainter {
       old.barColor != barColor;
 }
 
-/// 类别占比饼图（环形）。
+/// 类别占比饼图（环形）。点击扇区通过 [onTapSlice] 回传类别名。
 class CategoryPieChart extends StatelessWidget {
   final List<(String, double)> totals;
   final String? highlighted;
   final ValueChanged<String>? onTapSlice;
+
+  static const _size = 160.0;
+  static const _stroke = 22.0;
 
   const CategoryPieChart({
     super.key,
@@ -184,44 +187,80 @@ class CategoryPieChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final palette = piePalette(colors);
+    (String, double)? selected;
+    if (highlighted != null) {
+      for (final e in totals) {
+        if (e.$1 == highlighted) {
+          selected = e;
+          break;
+        }
+      }
+    }
     return SizedBox(
-      width: 160,
-      height: 160,
-      child: CustomPaint(
-        painter: _PiePainter(
-          totals: totals,
-          palette: palette,
-          trackColor: colors.hoverBg,
-          borderColor: colors.surface,
-          highlighted: highlighted,
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _totalText(),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: colors.text,
+      width: _size,
+      height: _size,
+      child: GestureDetector(
+        onTapUp:
+            onTapSlice == null ? null : (d) => _handleTap(d.localPosition),
+        child: CustomPaint(
+          painter: _PiePainter(
+            totals: totals,
+            palette: palette,
+            trackColor: colors.hoverBg,
+            borderColor: colors.surface,
+            highlighted: highlighted,
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  selected == null ? _totalText() : _amountText(selected.$2),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: selected == null ? colors.text : colors.primary,
+                  ),
                 ),
-              ),
-              Text(
-                '总支出',
-                style: TextStyle(fontSize: 11, color: colors.textMuted),
-              ),
-            ],
+                Text(
+                  selected == null ? '总支出' : selected.$1,
+                  style: TextStyle(fontSize: 11, color: colors.textMuted),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  String _totalText() {
-    final t = totals.fold<double>(0, (s, e) => s + e.$2);
-    return '¥${t.toStringAsFixed(t % 1 == 0 ? 0 : 2)}';
+  void _handleTap(Offset local) {
+    final total = totals.fold<double>(0, (s, e) => s + e.$2);
+    if (total <= 0) return;
+    const center = Offset(_size / 2, _size / 2);
+    final v = local - center;
+    final dist = v.distance;
+    final radius = _size / 2;
+    if (dist < radius - _stroke || dist > radius) return;
+    // 绘制从 -π/2（正上方）开始顺时针，换算到相对角度
+    var angle = math.atan2(v.dy, v.dx) + math.pi / 2;
+    angle = (angle + 2 * math.pi) % (2 * math.pi);
+    var acc = 0.0;
+    for (final entry in totals) {
+      final sweep = entry.$2 / total * 2 * math.pi;
+      if (angle >= acc && angle < acc + sweep) {
+        onTapSlice!(entry.$1);
+        return;
+      }
+      acc += sweep;
+    }
   }
+
+  String _amountText(double v) =>
+      '¥${v.toStringAsFixed(v % 1 == 0 ? 0 : 2)}';
+
+  String _totalText() =>
+      _amountText(totals.fold<double>(0, (s, e) => s + e.$2));
 }
 
 class _PiePainter extends CustomPainter {

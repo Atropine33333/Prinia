@@ -21,10 +21,11 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class AppShellState extends ConsumerState<AppShell> {
+  /// 主页面索引：手机底部导航与平板侧栏共用，旋转时保持选中页。
   int _index = 0;
 
-  /// 平板侧栏：0~2 主页面，3 = 设置。
-  int _railIndex = 0;
+  /// 平板侧栏是否停在「设置」页（手机为 push 打开，不受影响）。
+  bool _showSettings = false;
 
   @override
   void initState() {
@@ -46,7 +47,7 @@ class AppShellState extends ConsumerState<AppShell> {
   /// 通知点击等外部入口切换到指定主页面（0=记账本）。
   void switchTo(int index) => setState(() {
         _index = index;
-        _railIndex = index;
+        _showSettings = false;
       });
 
   static const _destinations = [
@@ -85,7 +86,10 @@ class AppShellState extends ConsumerState<AppShell> {
             body: IndexedStack(index: _index, children: pages),
             bottomNavigationBar: NavigationBar(
               selectedIndex: _index,
-              onDestinationSelected: (i) => setState(() => _index = i),
+              onDestinationSelected: (i) => setState(() {
+                _index = i;
+                _showSettings = false;
+              }),
               destinations: [
                 for (final d in _destinations)
                   NavigationDestination(
@@ -106,9 +110,15 @@ class AppShellState extends ConsumerState<AppShell> {
                 backgroundColor: colors.surface,
                 groupAlignment: 1,
                 labelType: NavigationRailLabelType.selected,
-                selectedIndex: _railIndex,
-                onDestinationSelected: (i) =>
-                    setState(() => _railIndex = i),
+                selectedIndex: _showSettings ? 3 : _index,
+                onDestinationSelected: (i) => setState(() {
+                  if (i == 3) {
+                    _showSettings = true;
+                  } else {
+                    _showSettings = false;
+                    _index = i;
+                  }
+                }),
                 destinations: [
                   for (final d in _destinations)
                     NavigationRailDestination(
@@ -125,9 +135,9 @@ class AppShellState extends ConsumerState<AppShell> {
               ),
               VerticalDivider(width: 1, color: colors.border),
               Expanded(
-                child: _railIndex == 3
+                child: _showSettings
                     ? const SettingsPage()
-                    : IndexedStack(index: _railIndex, children: pages),
+                    : IndexedStack(index: _index, children: pages),
               ),
             ],
           ),
