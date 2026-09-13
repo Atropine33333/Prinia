@@ -45,10 +45,24 @@ jobs:
             sed -i 's/compileSdkVersion 33/compileSdkVersion 34/' "$f"
           done
       - run: flutter build apk --release --split-per-abi
+      # ── v2.0.0 迁移版（仅该 tag）────────────────────────────────
+      # 包名从 dev.octo.octo_note 改为 io.github.atropine33333.prinia。
+      # 旧用户的应用内更新下载 app-arm64-v8a-release.apk，这里让「旧包名迁移版」
+      # 占用该资产名，实现原地升级（数据保留）；新包名 arm64 另命名供手动安装。
+      # 其余 tag 不执行本步骤，资产命名保持常规。
+      - name: Stage v2.0.0 migration assets
+        if: github.ref == 'refs/tags/v2.0.0'
+        run: |
+          APK_DIR=build/app/outputs/flutter-apk
+          mv "$APK_DIR/app-arm64-v8a-release.apk" "$APK_DIR/Prinia-2.0.0-newpkg-arm64-v8a.apk"
+          sed -i 's/applicationId = "io.github.atropine33333.prinia"/applicationId = "dev.octo.octo_note"/' android/app/build.gradle.kts
+          flutter build apk --release --target-platform android-arm64 --split-per-abi
+          git checkout -- android/app/build.gradle.kts
+          ls -la "$APK_DIR"
       - uses: actions/upload-artifact@v4
         with:
           name: apk
-          path: build/app/outputs/flutter-apk/app-*-release.apk
+          path: build/app/outputs/flutter-apk/*.apk
           if-no-files-found: error
 
   build-windows:
@@ -81,9 +95,31 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
+      - name: Prepare release body
+        run: |
+          if [ "${{ github.ref }}" = "refs/tags/v2.0.0" ]; then
+            cat > release-body.md <<'EOF'
+          ## ⚠️ v2.0.0 起包名变更（需迁移）
+
+          应用包名由 `dev.octo.octo_note` 改为 `io.github.atropine33333.prinia`，Android 视为全新应用，
+          旧版无法直接覆盖安装，请按下面顺序迁移（数据不会丢失）：
+
+          1. **先装迁移版**：下载本次资产中的 `app-arm64-v8a-release.apk`（旧包名的 v2.0.0），直接覆盖安装，数据保留；
+          2. **导出数据**：打开应用 → 设置 → 数据 → 导出数据备份，保存 JSON 文件；
+          3. **安装新版**：下载 `Prinia-2.0.0-newpkg-arm64-v8a.apk` 并安装（可与旧版共存）；
+          4. **导入数据**：打开新版应用 → 设置 → 数据 → 导入数据备份，选择第 2 步的 JSON；
+          5. 确认无误后可卸载旧版；今后版本直接在新版应用内更新即可。
+
+          > 旧版用户请务必先完成第 1、2 步再装新版，否则旧数据不会自动转移。
+          EOF
+          else
+            : > release-body.md
+          fi
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          body_path: release-body.md
           files: |
             app-*-release.apk
+            Prinia-*-newpkg-*.apk
             Prinia-windows.zip
