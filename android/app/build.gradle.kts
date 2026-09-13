@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.octo.octo_note"
+    namespace = "io.github.atropine33333.prinia"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "28.2.13676358"
 
@@ -16,8 +16,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "dev.octo.octo_note"
+        // 应用唯一标识（与品牌统一；改动会导致新装应用、旧数据需通过备份迁移）
+        applicationId = "io.github.atropine33333.prinia"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

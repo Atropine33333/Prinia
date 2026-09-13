@@ -23,6 +23,18 @@ jobs:
           distribution: temurin
           java-version: '17'
       - run: flutter pub get
+      # 使用与本地开发一致的 debug keystore 签名，保证 CI 包可覆盖安装本地包（应用内更新）
+      - name: Install debug keystore (统一签名)
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+            mkdir -p "$HOME/.android"
+            printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > "$HOME/.android/debug.keystore"
+            echo "debug keystore installed"
+          else
+            echo "::warning::DEBUG_KEYSTORE_BASE64 未配置，本次构建的签名与本地开发包不一致"
+          fi
       - name: Install CMake 3.22.1 (AGP requirement)
         run: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "cmake;3.22.1" > /dev/null
       # flutter_displaymode 钉死 compileSdk 33，CI 未装该平台，改用 34

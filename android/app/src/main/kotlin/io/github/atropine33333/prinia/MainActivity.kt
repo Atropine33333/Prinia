@@ -1,4 +1,4 @@
-package dev.octo.octo_note
+package io.github.atropine33333.prinia
 
 import android.Manifest
 import android.annotation.SuppressLint
