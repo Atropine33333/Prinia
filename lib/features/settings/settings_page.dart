@@ -348,7 +348,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             contentPadding: EdgeInsets.zero,
             title: Text('版本',
                 style: TextStyle(color: colors.text, fontSize: 15)),
-            subtitle: Text('1.2.4',
+            subtitle: Text('1.3.0',
                 style: TextStyle(color: colors.textMuted, fontSize: 12)),
           ),
           ListTile(
@@ -659,7 +659,7 @@ class OpenSourceLicensesPage extends StatelessWidget {
       appBar: AppBar(title: const Text('开源许可证')),
       body: const LicensePage(
         applicationName: 'Prinia',
-        applicationVersion: '1.2.4',
+        applicationVersion: '1.3.0',
         applicationLegalese: 'Prinia · 记账、番茄钟与课表的本地效率工具',
       ),
     );

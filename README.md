@@ -10,6 +10,7 @@ A local-first productivity app for students. Prinia combines an expense tracker,
 - Income and expense records with 7 preset categories plus user-defined tags
 - Monthly summary with balance, daily expense bar chart (0-300 coordinate system), and category pie chart
 - Tap a bar in the chart to inspect a single day; the pie chart follows the selection
+- Tap a pie slice or legend entry to highlight that category and show its exact amount
 - Custom tags with searchable icon picker and fallback mascot icon
 - Soft delete with confirmation
 
