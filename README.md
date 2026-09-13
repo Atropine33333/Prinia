@@ -25,6 +25,7 @@ A local-first productivity app for students. Prinia combines an expense tracker,
 - Multi-weekday course creation, custom card colors, week range and odd/even week support, adjustable card font size
 - Built-in 12-period daily schedule (08:00–22:20); tap the time column to switch between clock times and period numbers
 - Custom period schedules (Settings → Timetable): add or remove periods and adjust their times; stored in `app_meta` and synced across devices
+- Import schedules from the unified cross-school JSON format (Settings → Data); imported rows join the normal sync flow
 - Long-press quick edit to move a course with conflict detection
 - Per-course reminders delivered as local notifications at 08:00 on the due date
 

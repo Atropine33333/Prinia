@@ -1,3 +1,4 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -16,6 +17,7 @@ import '../../core/theme/theme_controller.dart';
 import '../../shared/responsive.dart';
 import '../timetable/period_editor_page.dart';
 import '../timetable/periods.dart';
+import '../timetable/schedule_import.dart';
 import '../timetable/timetable_providers.dart';
 import 'theme_editor_page.dart';
 
@@ -346,7 +348,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             contentPadding: EdgeInsets.zero,
             title: Text('版本',
                 style: TextStyle(color: colors.text, fontSize: 15)),
-            subtitle: Text('1.2.2',
+            subtitle: Text('1.2.3',
                 style: TextStyle(color: colors.textMuted, fontSize: 12)),
           ),
           ListTile(
@@ -375,6 +377,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _SectionTitle('数据'),
           ListTile(
             contentPadding: EdgeInsets.zero,
+            title: Text('导入课表 JSON',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            subtitle: Text('按统一格式追加导入课程，不覆盖现有课程',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+            onTap: _importScheduleJson,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
             title: Text('清除课程表数据',
                 style: TextStyle(color: colors.error, fontSize: 15)),
             subtitle: Text('删除全部课程（测试用，自定义作息保留）',
@@ -393,6 +403,61 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       ),
     );
+  }
+
+  /// 选择统一格式 JSON 文件，解析后追加导入课程表。
+  Future<void> _importScheduleJson() async {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final file = await openFile();
+    if (file == null || !mounted) return;
+    final source = await file.readAsString();
+    if (!mounted) return;
+
+    final report =
+        parseScheduleJson(source, periods: ref.read(periodsProvider));
+    if (report.isEmpty) {
+      final reason =
+          report.skipped.isEmpty ? '文件格式不正确' : report.skipped.first;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('没有可导入的安排：$reason')),
+      );
+      return;
+    }
+
+    final skipText = report.skipped.isEmpty
+        ? ''
+        : '\n\n跳过 ${report.skipped.length} 条：\n'
+            '${report.skipped.take(5).join('\n')}'
+            '${report.skipped.length > 5 ? '\n…' : ''}';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导入课表'),
+        content: Text(
+          '将新增 ${report.rows.length} 条课程安排并追加到现有课表。$skipText',
+          style: TextStyle(color: colors.textMuted, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('取消', style: TextStyle(color: colors.textMuted)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('导入'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    final count =
+        await insertImportedRows(ref.read(databaseProvider), report.rows);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已导入 $count 条课程安排')),
+      );
+    }
   }
 
   Future<void> _confirmClearCourses(AppColors colors) async {
@@ -594,7 +659,7 @@ class OpenSourceLicensesPage extends StatelessWidget {
       appBar: AppBar(title: const Text('开源许可证')),
       body: const LicensePage(
         applicationName: 'Prinia',
-        applicationVersion: '1.2.2',
+        applicationVersion: '1.2.3',
         applicationLegalese: 'Prinia · 记账、番茄钟与课表的本地效率工具',
       ),
     );

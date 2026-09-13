@@ -9,14 +9,9 @@ import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../shared/responsive.dart';
+import 'course_palette.dart';
 import 'periods.dart';
 import 'timetable_providers.dart';
-
-/// 课程卡片预设色（低饱和 Morandi）。
-const coursePalette = [
-  '#7A9E9F', '#A89B8C', '#9B8AA0', '#8FA387',
-  '#B08D8D', '#8896AB', '#B5A37E', '#96A0B5',
-];
 
 /// 新建/编辑课程。[existing] 为空表示新建。
 class CourseEditPage extends ConsumerStatefulWidget {
