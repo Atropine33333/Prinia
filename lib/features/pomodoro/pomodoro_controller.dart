@@ -74,8 +74,16 @@ class PomodoroController extends Notifier<PomodoroState>
     with WidgetsBindingObserver {
   Timer? _ticker;
   DateTime? _startedAt;
+
+  /// 当前阶段的墙钟结束点；暂停/空闲时为 null。
+  ///
+  /// 倒计时一律按 `结束点 - 现在` 计算，进程被系统冻结后回前台也能自动校正。
+  DateTime? _phaseEndAt;
   AppLifecycleListener? _lifecycle;
   bool _restNotifyScheduled = false;
+
+  /// 当前是否在前台；用于避免「快速切出又切回」时异步息屏判定误暂停。
+  bool _inForeground = true;
 
   @override
   PomodoroState build() {
@@ -144,27 +152,60 @@ class PomodoroController extends Notifier<PomodoroState>
     state = state.copyWith(comebackNotice: false);
     switch (state.phase) {
       case PomodoroPhase.idle:
-        _startedAt = DateTime.now();
-        _startTicker();
-        state = state.copyWith(
-          phase: PomodoroPhase.focusing,
-          remainingSeconds: state.workMinutes * 60,
-        );
+        _beginPhase(PomodoroPhase.focusing, state.workMinutes);
       case PomodoroPhase.focusing:
-        _cancelTicker();
-        state = state.copyWith(phase: PomodoroPhase.focusPaused);
+      case PomodoroPhase.resting:
+        _pausePhase();
       case PomodoroPhase.focusPaused:
       case PomodoroPhase.restPaused:
-        _startTicker();
-        state = state.copyWith(
-          phase: state.phase == PomodoroPhase.focusPaused
-              ? PomodoroPhase.focusing
-              : PomodoroPhase.resting,
-        );
-      case PomodoroPhase.resting:
-        _cancelTicker();
-        state = state.copyWith(phase: PomodoroPhase.restPaused);
+        _resumePhase();
     }
+  }
+
+  /// 开始一段新阶段（专注/休息）：记录开始时刻与墙钟结束点。
+  void _beginPhase(PomodoroPhase phase, int minutes) {
+    final now = DateTime.now();
+    _startedAt = now;
+    _phaseEndAt = now.add(Duration(seconds: minutes * 60));
+    state = state.copyWith(
+      phase: phase,
+      remainingSeconds: minutes * 60,
+    );
+    _startTicker();
+  }
+
+  /// 暂停当前阶段：剩余时间固定在 state，清空墙钟结束点。
+  void _pausePhase() {
+    final fromClock = _remainingFromClock();
+    _phaseEndAt = null;
+    _cancelTicker();
+    state = state.copyWith(
+      phase: state.phase == PomodoroPhase.focusing
+          ? PomodoroPhase.focusPaused
+          : PomodoroPhase.restPaused,
+      remainingSeconds: fromClock == null || fromClock <= 0
+          ? state.remainingSeconds
+          : fromClock,
+    );
+  }
+
+  /// 从暂停恢复：以当前剩余时间重新计算墙钟结束点。
+  void _resumePhase() {
+    _phaseEndAt =
+        DateTime.now().add(Duration(seconds: max(state.remainingSeconds, 1)));
+    state = state.copyWith(
+      phase: state.phase == PomodoroPhase.focusPaused
+          ? PomodoroPhase.focusing
+          : PomodoroPhase.resting,
+    );
+    _startTicker();
+  }
+
+  /// 按墙钟计算的剩余秒数；未在计时中（空闲/暂停）返回 null。
+  int? _remainingFromClock() {
+    final endAt = _phaseEndAt;
+    if (endAt == null) return null;
+    return endAt.difference(DateTime.now()).inSeconds;
   }
 
   /// 重置回空闲（保留时长设置）。
@@ -182,6 +223,7 @@ class PomodoroController extends Notifier<PomodoroState>
       remainingSeconds: state.workMinutes * 60,
     );
     _startedAt = null;
+    _phaseEndAt = null;
     if (wasActive && wasFocus) {
       await _record(
         durationSeconds: elapsed,
@@ -194,6 +236,7 @@ class PomodoroController extends Notifier<PomodoroState>
   /// 【调试】快进到距结束 3 秒。
   void debugSkipToEnd() {
     if (state.isActive) {
+      _phaseEndAt = DateTime.now().add(const Duration(seconds: 3));
       _startTicker();
       state = state.copyWith(remainingSeconds: 3);
     }
@@ -207,17 +250,21 @@ class PomodoroController extends Notifier<PomodoroState>
   }
 
   Future<void> _tick() async {
-    final next = state.remainingSeconds - 1;
+    final fromClock = _remainingFromClock();
+    if (fromClock == null) return; // 已暂停/未在计时
+    final prev = state.remainingSeconds;
 
-    // 休息剩 1 分钟提醒（前台也提醒，保持一致性）
-    if (state.phase == PomodoroPhase.resting && next == 60) {
+    // 休息剩 1 分钟提醒（后台被冻结可能跨过 60s，用区间判断）
+    if (state.phase == PomodoroPhase.resting && prev > 60 && fromClock <= 60) {
       NotificationService.showPomodoro(
         '还有一分钟休息就结束了哦——',
       );
     }
 
-    if (next > 0) {
-      state = state.copyWith(remainingSeconds: next);
+    if (fromClock > 0) {
+      if (fromClock != prev) {
+        state = state.copyWith(remainingSeconds: fromClock);
+      }
       return;
     }
     _cancelTicker();
@@ -235,37 +282,28 @@ class PomodoroController extends Notifier<PomodoroState>
         status: 'completed',
       );
       _celebrate();
-      _startedAt = DateTime.now();
       _restNotifyScheduled = false;
-      state = state.copyWith(
-        phase: PomodoroPhase.resting,
-        remainingSeconds: state.restMinutes * 60,
-      );
-      _startTicker();
+      _beginPhase(PomodoroPhase.resting, state.restMinutes);
     } else {
       // 休息完成 → 自动开始下一轮专注（循环计时）
       _celebrate();
-      _startedAt = DateTime.now();
-      state = state.copyWith(
-        phase: PomodoroPhase.focusing,
-        remainingSeconds: state.workMinutes * 60,
-        comebackNotice: false,
-      );
-      _startTicker();
+      state = state.copyWith(comebackNotice: false);
+      _beginPhase(PomodoroPhase.focusing, state.workMinutes);
     }
   }
 
   // ── 生命周期：溜号检测 ──────────────────────────────────────
 
   void _onAppHide() {
+    _inForeground = false;
     if (state.phase == PomodoroPhase.focusing) {
       // 息屏不算溜号：屏幕点亮才判定为切换应用
       unawaited(() async {
         final screenOn = await ScreenState.isInteractive();
-        if (!screenOn) return; // 息屏：继续计时
+        if (!screenOn) return; // 息屏：继续计时（墙钟校正）
+        if (_inForeground) return; // 已回到前台，无需暂停
         if (state.phase != PomodoroPhase.focusing) return;
-        _cancelTicker();
-        state = state.copyWith(phase: PomodoroPhase.focusPaused);
+        _pausePhase();
         NotificationService.showPomodoro('快回来——(╬▔皿▔)╯',
             payload: 'pomodoro_back');
       }());
@@ -283,9 +321,26 @@ class PomodoroController extends Notifier<PomodoroState>
   }
 
   void _onAppResume() {
+    _inForeground = true;
     if (_restNotifyScheduled) {
       _restNotifyScheduled = false;
       NotificationService.cancelScheduledPomodoro();
+    }
+    // 后台/息屏期间进程可能被系统冻结：回前台按墙钟校正剩余，必要时补结算
+    if (state.isActive) {
+      final fromClock = _remainingFromClock() ?? state.remainingSeconds;
+      if (fromClock <= 0) {
+        _cancelTicker();
+        unawaited(_onPhaseComplete());
+      } else {
+        if (state.phase == PomodoroPhase.resting &&
+            state.remainingSeconds > 60 &&
+            fromClock <= 60) {
+          NotificationService.showPomodoro('还有一分钟休息就结束了哦——');
+        }
+        state = state.copyWith(remainingSeconds: fromClock);
+        _startTicker(); // 定时器可能被挂起，回前台重新起表
+      }
     }
     if (state.phase == PomodoroPhase.focusPaused && _startedAt != null) {
       // 从专注溜号回来：提示（计时已停，等用户手动继续）
