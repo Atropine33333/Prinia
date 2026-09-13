@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/backup/backup_service.dart';
 import '../../core/db/db_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/sync/device_identity.dart';
@@ -377,6 +382,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _SectionTitle('数据'),
           ListTile(
             contentPadding: EdgeInsets.zero,
+            title: Text('导出数据备份',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            subtitle: Text('生成 JSON 备份并分享保存（换包名/换机迁移用）',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+            onTap: _exportBackup,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('导入数据备份',
+                style: TextStyle(color: colors.text, fontSize: 15)),
+            subtitle: Text('从备份恢复数据与设置（按行合并，不清空现有数据）',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+            onTap: _importBackup,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
             title: Text('导入课表 JSON',
                 style: TextStyle(color: colors.text, fontSize: 15)),
             subtitle: Text('按统一格式追加导入课程，不覆盖现有课程',
@@ -403,6 +424,83 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       ),
     );
+  }
+
+  /// 导出全部数据为 JSON 备份，并通过系统分享交给用户保存。
+  Future<void> _exportBackup() async {
+    try {
+      final json = await exportBackup(ref.read(databaseProvider));
+      final dir = await getTemporaryDirectory();
+      final stamp = DateFormat('yyyyMMdd-HHmm').format(DateTime.now());
+      final file = File('${dir.path}/prinia-backup-$stamp.json');
+      await file.writeAsString(json);
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path, mimeType: 'application/json')],
+        subject: 'Prinia 数据备份',
+        text: '保存后可在 Prinia「设置 → 数据 → 导入数据备份」中还原',
+      ));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败：$e')),
+        );
+      }
+    }
+  }
+
+  /// 从 JSON 备份恢复数据（逐行 LWW 合并 + 偏好覆盖）。
+  Future<void> _importBackup() async {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final file = await openFile();
+    if (file == null || !mounted) return;
+    final source = await file.readAsString();
+    if (!mounted) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导入数据备份'),
+        content: Text(
+          '将把备份中的数据合并到本机（相同 uuid 以更新的时间戳为准），并恢复主题、'
+          '番茄钟时长等设置。主题与番茄钟设置需重启应用后生效。',
+          style: TextStyle(color: colors.textMuted, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('取消', style: TextStyle(color: colors.textMuted)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('导入'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    try {
+      final db = ref.read(databaseProvider);
+      final result = await importBackup(source, db);
+      // 备份里的课程提醒需要按本机重新调度
+      final courses = await db.coursesDao.watchAll().first;
+      await NotificationService.rescheduleCourseReminders([
+        for (final c in courses)
+          (uuid: c.uuid, name: c.name, remindersJson: c.remindersJson),
+      ]);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('已导入 ${result.applied} 条数据'
+              '（跳过 ${result.skipped} 条旧数据），恢复 ${result.prefs} 项设置'),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导入失败：$e')),
+        );
+      }
+    }
   }
 
   /// 选择统一格式 JSON 文件，解析后追加导入课程表。

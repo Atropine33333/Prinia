@@ -2,6 +2,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../db/daos/courses_dao.dart';
+
 /// 本地通知服务：饭点记账提醒 + 课程提醒。
 ///
 /// 时区处理：不引入额外时区插件，利用固定偏移把本地时刻换算成 UTC 分量
@@ -123,6 +125,22 @@ class NotificationService {
     final base = _courseReminderBase + (courseKey.hashCode.abs() % 1000000) * 16;
     for (var i = 0; i < count; i++) {
       await _plugin.cancel(base + i);
+    }
+  }
+
+  /// 按课程数据重新调度全部课程提醒（恢复备份 / 数据迁移后调用）。
+  static Future<void> rescheduleCourseReminders(
+      List<({String uuid, String name, String remindersJson})> courses) async {
+    for (final c in courses) {
+      final reminders = parseReminders(c.remindersJson);
+      for (var i = 0; i < reminders.length; i++) {
+        await scheduleCourseReminder(
+          courseKey: c.uuid,
+          reminderIndex: i,
+          date: reminders[i].date,
+          text: '${c.name}：${reminders[i].text}',
+        );
+      }
     }
   }
 
