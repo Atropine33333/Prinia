@@ -346,7 +346,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             contentPadding: EdgeInsets.zero,
             title: Text('版本',
                 style: TextStyle(color: colors.text, fontSize: 15)),
-            subtitle: Text('1.2.1',
+            subtitle: Text('1.2.2',
                 style: TextStyle(color: colors.textMuted, fontSize: 12)),
           ),
           ListTile(
@@ -375,6 +375,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _SectionTitle('数据'),
           ListTile(
             contentPadding: EdgeInsets.zero,
+            title: Text('清除课程表数据',
+                style: TextStyle(color: colors.error, fontSize: 15)),
+            subtitle: Text('删除全部课程（测试用，自定义作息保留）',
+                style: TextStyle(color: colors.textMuted, fontSize: 12)),
+            onTap: () => _confirmClearCourses(colors),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
             title: Text('清除本地数据',
                 style: TextStyle(color: colors.error, fontSize: 15)),
             subtitle: Text('清空账目/专注记录/课程/自定义标签，不可恢复',
@@ -385,6 +393,34 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       ),
     );
+  }
+
+  Future<void> _confirmClearCourses(AppColors colors) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('清除全部课程？'),
+        content: Text('课程表中的所有课程都将被删除（含已删除记录），且不可恢复。自定义作息不受影响。',
+            style: TextStyle(color: colors.textMuted, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('取消', style: TextStyle(color: colors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('清除', style: TextStyle(color: colors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await ref.read(databaseProvider).clearAllCourses();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('课程表已清空')),
+      );
+    }
   }
 
   Future<void> _confirmClearData(AppColors colors) async {
@@ -558,7 +594,7 @@ class OpenSourceLicensesPage extends StatelessWidget {
       appBar: AppBar(title: const Text('开源许可证')),
       body: const LicensePage(
         applicationName: 'Prinia',
-        applicationVersion: '1.2.1',
+        applicationVersion: '1.2.2',
         applicationLegalese: 'Prinia · 记账、番茄钟与课表的本地效率工具',
       ),
     );

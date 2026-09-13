@@ -57,6 +57,11 @@ class AppDatabase extends _$AppDatabase {
     await customStatement('VACUUM');
   }
 
+  /// 清空全部课程（含软删除行；测试用，自定义作息保留）。
+  Future<void> clearAllCourses() async {
+    await delete(courses).go();
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
