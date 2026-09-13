@@ -41,7 +41,18 @@ class ScheduleImportReport {
   final List<ImportedCourseRow> rows;
   final List<String> skipped;
 
-  const ScheduleImportReport({required this.rows, required this.skipped});
+  /// 文件中的学期开始日期（`meta.term.startDate`），用于同步 App 的学期设置。
+  final DateTime? termStart;
+
+  /// 文件中的学期名（`meta.term.name`），仅用于提示。
+  final String? termName;
+
+  const ScheduleImportReport({
+    required this.rows,
+    required this.skipped,
+    this.termStart,
+    this.termName,
+  });
 
   bool get isEmpty => rows.isEmpty;
 }
@@ -68,6 +79,19 @@ ScheduleImportReport parseScheduleJson(
   }
   if (root is! Map || root['courses'] is! List) {
     return const ScheduleImportReport(rows: [], skipped: ['缺少 courses 数组']);
+  }
+
+  // meta.term：学期开始日期决定 App 的周次编号，必须随文件同步
+  DateTime? termStart;
+  String? termName;
+  final meta = root['meta'];
+  if (meta is Map) {
+    final term = meta['term'];
+    if (term is Map) {
+      termName = term['name'] as String?;
+      final raw = term['startDate'];
+      if (raw is String) termStart = DateTime.tryParse(raw);
+    }
   }
 
   for (final course in root['courses'] as List) {
@@ -122,7 +146,12 @@ ScheduleImportReport parseScheduleJson(
       }
     }
   }
-  return ScheduleImportReport(rows: rows, skipped: skipped);
+  return ScheduleImportReport(
+    rows: rows,
+    skipped: skipped,
+    termStart: termStart,
+    termName: termName,
+  );
 }
 
 /// 写入 courses 表（追加模式，不覆盖已有课程）；返回写入行数。

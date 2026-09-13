@@ -6,6 +6,13 @@ import 'package:octo_note/features/timetable/schedule_import.dart';
 const _sample = '''
 {
   "schemaVersion": "1.0",
+  "meta": {
+    "school": { "name": "示例大学", "code": "DEMO" },
+    "term": {
+      "name": "2026-2027学年第一学期",
+      "startDate": "2026-08-31"
+    }
+  },
   "courses": [
     {
       "name": "高等数学",
@@ -110,6 +117,11 @@ void main() {
       expect(pe.startMinutes, 14 * 60 + 30); // 第5节 14:30
       expect(pe.durationMinutes, 100); // 至第6节 16:10
       expect(pe.room, '体育部 看台3号场地');
+    });
+
+    test('解析学期开始日期（用于同步周次与单双周）', () {
+      expect(report.termStart, DateTime(2026, 8, 31));
+      expect(report.termName, '2026-2027学年第一学期');
     });
 
     test('教师与颜色', () {

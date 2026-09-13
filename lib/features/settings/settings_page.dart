@@ -353,7 +353,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             contentPadding: EdgeInsets.zero,
             title: Text('版本',
                 style: TextStyle(color: colors.text, fontSize: 15)),
-            subtitle: Text('1.3.1',
+            subtitle: Text('1.3.2',
                 style: TextStyle(color: colors.textMuted, fontSize: 12)),
           ),
           ListTile(
@@ -522,6 +522,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return;
     }
 
+    final currentStart = ref.read(semesterStartProvider);
+    final termText = report.termStart == null
+        ? '\n\n注意：文件未提供学期开始日期，周次/单双周可能不准，'
+            '请到「设置 → 课表」手动核对。'
+        : '\n\n学期开始日期将设为 '
+            '${DateFormat('yyyy-MM-dd').format(report.termStart!)}'
+            '（当前 ${DateFormat('yyyy-MM-dd').format(currentStart)}，'
+            '用于计算周次与单双周）。';
     final skipText = report.skipped.isEmpty
         ? ''
         : '\n\n跳过 ${report.skipped.length} 条：\n'
@@ -532,7 +540,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('导入课表'),
         content: Text(
-          '将新增 ${report.rows.length} 条课程安排并追加到现有课表。$skipText',
+          '将新增 ${report.rows.length} 条课程安排并追加到现有课表。'
+          '$termText$skipText',
           style: TextStyle(color: colors.textMuted, fontSize: 13),
         ),
         actions: [
@@ -551,9 +560,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     final count =
         await insertImportedRows(ref.read(databaseProvider), report.rows);
+    if (report.termStart != null) {
+      // 对齐到周一（第 1 周周一），保证周次与单双周与文件一致
+      final d = report.termStart!;
+      final monday = d.subtract(Duration(days: d.weekday - 1));
+      await ref.read(semesterStartProvider.notifier).set(monday);
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已导入 $count 条课程安排')),
+        SnackBar(
+          content: Text('已导入 $count 条课程安排'
+              '${report.termStart == null ? '' : '，学期开始日期已更新'}'),
+        ),
       );
     }
   }
@@ -757,7 +775,7 @@ class OpenSourceLicensesPage extends StatelessWidget {
       appBar: AppBar(title: const Text('开源许可证')),
       body: const LicensePage(
         applicationName: 'Prinia',
-        applicationVersion: '1.3.1',
+        applicationVersion: '1.3.2',
         applicationLegalese: 'Prinia · 记账、番茄钟与课表的本地效率工具',
       ),
     );
